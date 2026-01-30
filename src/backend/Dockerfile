@@ -14,4 +14,4 @@ COPY . .
 RUN chmod +x entrypoint.sh
 
 # Use entrypoint script to handle initialization and startup
-ENTRYPOINT ["./entrypoint.sh"]
+ENTRYPOINT ["sh", "entrypoint.sh"]

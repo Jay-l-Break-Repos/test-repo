@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM 238280154298.dkr.ecr.us-east-1.amazonaws.com/node:20-alpine
 
 WORKDIR /app
 

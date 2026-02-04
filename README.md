@@ -59,16 +59,69 @@ A workspace for uploading, storing, managing, and viewing documents, enabling te
 *   Docker & Docker Compose
 *   Git
 *   Node.js (optional, for local development)
+*   AWS CLI
 
-### 1. Clone and Start
+### 1. Clone Repository
+
+You can clone the repository using your PAT to authenticat
+
 ```bash
-git clone <repository-url>
-cd dms
-# Start the application
+git clone https://TEAM_GITHUB_USERNAME:PERSONAL_ACCESS_TOKEN@github.com/AmazonNovaAIChallenge2026/s-T00-samplerepo1-UA0000S01.git
+cd s-T00-samplerepo1-UA0000S01
+```
+
+Or you can simply download the zip from the GitHub page https://github.com/AmazonNovaAIChallenge2026/s-S01-samplerepo1-UA0000S01.
+
+### 2. Login Into ECR
+Use IAM credentials to log into ECR so you can build the images in ECR.
+```bash
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 238280154298.dkr.ecr.us-east-1.amazonaws.com
+```
+
+### 3. Start Application
+
+**Note: If on Mac execute the folowing**
+```bash
+export DOCKER_DEFAULT_PLATFORM=linux/arm64
+```
+
+You can use either
+
+```bash
 docker-compose up -d --build
 ```
 
-### 2. Access the Application
+or
+
+```bash
+docker compose up -d --build
+```
+
+depending on the system
+
+### 4. Access the Application
 *   **Frontend**: [http://localhost:5173](http://localhost:5173)
 *   **Backend API Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
 *   **Database**: `localhost:5432`
+
+### 5. Stopping the Application
+
+You can use either
+
+```bash
+docker-compose down
+```
+
+or
+
+```bash
+docker compose down
+```
+
+depending on the system
+
+To check that the containers are actually stopped use
+
+```bash
+docker container ls
+```

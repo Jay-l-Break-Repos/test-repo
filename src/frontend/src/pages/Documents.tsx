@@ -44,7 +44,7 @@ export const Documents = () => {
         try {
             await deleteDocument(deleteTarget.id);
             setDocuments((prev) => prev.filter((d) => d.id !== deleteTarget.id));
-            showSuccess(`Permanently deleted "${deleteTarget.name}".`);
+            showSuccess('Document permanently deleted.');
             setDeleteTarget(null);
         } catch (error) {
             console.error('Failed to delete document:', error);

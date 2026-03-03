@@ -1,7 +1,4 @@
 import { test, expect, request as playwrightRequest } from '@playwright/test';
-import * as path from 'path';
-import * as fs from 'fs';
-import * as os from 'os';
 
 const API_BASE = 'http://localhost:8000';
 

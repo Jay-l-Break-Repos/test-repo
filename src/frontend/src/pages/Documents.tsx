@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Eye, Plus } from 'lucide-react';
-import { getDocuments } from '../services/document.api';
-import { showError } from '../utils/toast';
+import { FileText, Eye, Plus, Trash2 } from 'lucide-react';
+import { getDocuments, deleteDocument } from '../services/document.api';
+import { showError, showSuccess } from '../utils/toast';
 
 interface Document {
     id: number;
@@ -18,6 +18,8 @@ export const Documents = () => {
     const navigate = useNavigate();
     const [documents, setDocuments] = useState<Document[]>([]);
     const [loading, setLoading] = useState(true);
+    const [deleteTarget, setDeleteTarget] = useState<Document | null>(null);
+    const [deleting, setDeleting] = useState(false);
 
     const fetchDocuments = async () => {
         setLoading(true);
@@ -32,10 +34,25 @@ export const Documents = () => {
         }
     };
 
-
     useEffect(() => {
         fetchDocuments();
     }, []);
+
+    const handleDeleteConfirm = async () => {
+        if (!deleteTarget) return;
+        setDeleting(true);
+        try {
+            await deleteDocument(deleteTarget.id);
+            setDocuments((prev) => prev.filter((d) => d.id !== deleteTarget.id));
+            showSuccess(`"${deleteTarget.name}" has been permanently deleted.`);
+            setDeleteTarget(null);
+        } catch (error) {
+            console.error('Failed to delete document:', error);
+            showError('Failed to delete document');
+        } finally {
+            setDeleting(false);
+        }
+    };
 
     const formatSize = (bytes: number) => {
         if (bytes === 0) return '0 B';
@@ -45,19 +62,13 @@ export const Documents = () => {
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     };
 
-
     const getFileIcon = (contentType: string, name: string) => {
         const nameLower = name.toLowerCase();
-
-        // Text files (.txt)
         if (nameLower.endsWith('.txt') || contentType === 'text/plain') {
             return <FileText size={20} className="text-gray-600" />;
         }
-
-        // Default
         return <FileText size={20} className="text-gray-500" />;
     };
-
 
     return (
         <div className="p-6 max-w-[1600px] mx-auto bg-gray-50/50 min-h-screen">
@@ -66,7 +77,6 @@ export const Documents = () => {
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Documents</h1>
                 </div>
-
                 <div className="flex items-center gap-4 w-full md:w-auto">
                     <button
                         onClick={() => navigate('/upload')}
@@ -80,8 +90,6 @@ export const Documents = () => {
 
             {/* Main Content Card */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-
-
                 {/* Table */}
                 <div className="overflow-x-auto">
                     {loading ? (
@@ -134,16 +142,28 @@ export const Documents = () => {
                                             </td>
                                             <td className="py-4 px-4 text-gray-500 text-sm font-mono text-right">{formatSize(doc.size)}</td>
                                             <td className="py-4 px-4 pr-6 text-right">
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        navigate(`/documents/${doc.id}`);
-                                                    }}
-                                                    className="p-2 hover:bg-indigo-50 text-gray-400 hover:text-indigo-600 rounded-lg transition-colors"
-                                                    title="View"
-                                                >
-                                                    <Eye size={18} />
-                                                </button>
+                                                <div className="flex items-center justify-end gap-1">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            navigate(`/documents/${doc.id}`);
+                                                        }}
+                                                        className="p-2 hover:bg-indigo-50 text-gray-400 hover:text-indigo-600 rounded-lg transition-colors"
+                                                        title="View"
+                                                    >
+                                                        <Eye size={18} />
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setDeleteTarget(doc);
+                                                        }}
+                                                        className="p-2 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded-lg transition-colors"
+                                                        title="Delete"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))
@@ -153,6 +173,51 @@ export const Documents = () => {
                     )}
                 </div>
             </div>
+
+            {/* Delete Confirmation Modal */}
+            {deleteTarget && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+                    <div className="bg-white rounded-xl shadow-xl border border-gray-200 w-full max-w-md mx-4 p-6">
+                        <h2 className="text-lg font-semibold text-gray-900 mb-2">Delete Document</h2>
+                        <p className="text-sm text-gray-600 mb-4">
+                            Are you sure you want to permanently delete this document? This action cannot be undone.
+                        </p>
+                        <table className="w-full text-sm mb-6 border border-gray-100 rounded-lg overflow-hidden">
+                            <tbody>
+                                <tr className="bg-gray-50">
+                                    <td className="px-4 py-2 font-medium text-gray-500 w-24">Name</td>
+                                    <td className="px-4 py-2 text-gray-900">{deleteTarget.name}</td>
+                                </tr>
+                                <tr>
+                                    <td className="px-4 py-2 font-medium text-gray-500">Size</td>
+                                    <td className="px-4 py-2 text-gray-700">{formatSize(deleteTarget.size)}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => setDeleteTarget(null)}
+                                disabled={deleting}
+                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleDeleteConfirm}
+                                disabled={deleting}
+                                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+                            >
+                                {deleting ? (
+                                    <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white inline-block" />
+                                ) : (
+                                    <Trash2 size={15} />
+                                )}
+                                Delete Permanently
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

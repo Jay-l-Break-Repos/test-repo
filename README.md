@@ -17,6 +17,7 @@ A workspace for uploading, storing, managing, and viewing documents, enabling te
 | `GET` | `/api/documents` | Retrieve a list of all documents. |
 | `GET` | `/api/documents/{id}` | Retrieve metadata for a specific document. |
 | `GET` | `/api/documents/{id}/view` | View the content of a specific document. |
+| `DELETE` | `/api/documents/{id}` | Permanently delete a document and its file. |
 
 ## 🛠️ Tech Stack
 

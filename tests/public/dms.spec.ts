@@ -219,7 +219,7 @@ test.describe('Public Environment E2E', () => {
             // Confirmation modal should appear
             await expect(page.getByRole('heading', { name: /Delete Document/i })).toBeVisible();
             await expect(page.getByText(/permanently delete/i)).toBeVisible();
-            await expect(page.getByText(fileName)).toBeVisible();
+            await expect(page.locator('tr').getByText(fileName)).toBeVisible();
             await expect(page.getByRole('button', { name: /Cancel/i })).toBeVisible();
             await expect(page.getByRole('button', { name: /Delete Permanently/i })).toBeVisible();
         });
@@ -264,10 +264,13 @@ test.describe('Public Environment E2E', () => {
             await expect(page.getByRole('heading', { name: /Delete Document/i })).toBeVisible();
             await page.getByRole('button', { name: /Delete Permanently/i }).click();
 
-            // Modal closes, document removed, success toast shown
+            // Toast appears immediately after deletion — check it first with a generous
+            // timeout before the 3 s auto-dismiss window closes
+            await expect(page.getByText(/permanently deleted/i)).toBeVisible({ timeout: 8000 });
+
+            // Modal closes and document is removed from the list
             await expect(page.getByRole('heading', { name: /Delete Document/i })).not.toBeVisible();
-            await expect(page.getByText(fileName)).not.toBeVisible();
-            await expect(page.getByText(/permanently deleted/i)).toBeVisible();
+            await expect(page.locator('tr').getByText(fileName)).not.toBeVisible();
         });
     });
 });

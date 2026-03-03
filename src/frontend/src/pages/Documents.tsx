@@ -44,7 +44,7 @@ export const Documents = () => {
         try {
             await deleteDocument(deleteTarget.id);
             setDocuments((prev) => prev.filter((d) => d.id !== deleteTarget.id));
-            showSuccess(`"${deleteTarget.name}" has been permanently deleted.`);
+            showSuccess(`Permanently deleted "${deleteTarget.name}".`);
             setDeleteTarget(null);
         } catch (error) {
             console.error('Failed to delete document:', error);
@@ -182,18 +182,16 @@ export const Documents = () => {
                         <p className="text-sm text-gray-600 mb-4">
                             Are you sure you want to permanently delete this document? This action cannot be undone.
                         </p>
-                        <table className="w-full text-sm mb-6 border border-gray-100 rounded-lg overflow-hidden">
-                            <tbody>
-                                <tr className="bg-gray-50">
-                                    <td className="px-4 py-2 font-medium text-gray-500 w-24">Name</td>
-                                    <td className="px-4 py-2 text-gray-900">{deleteTarget.name}</td>
-                                </tr>
-                                <tr>
-                                    <td className="px-4 py-2 font-medium text-gray-500">Size</td>
-                                    <td className="px-4 py-2 text-gray-700">{formatSize(deleteTarget.size)}</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        <div className="text-sm mb-6 border border-gray-100 rounded-lg overflow-hidden">
+                            <div className="flex bg-gray-50 px-4 py-2">
+                                <span className="font-medium text-gray-500 w-16 shrink-0">Name</span>
+                                <span className="text-gray-900 break-all">{deleteTarget.name}</span>
+                            </div>
+                            <div className="flex px-4 py-2">
+                                <span className="font-medium text-gray-500 w-16 shrink-0">Size</span>
+                                <span className="text-gray-700">{formatSize(deleteTarget.size)}</span>
+                            </div>
+                        </div>
                         <div className="flex justify-end gap-3">
                             <button
                                 onClick={() => setDeleteTarget(null)}

@@ -176,9 +176,14 @@ export const Documents = () => {
 
             {/* Delete Confirmation Modal */}
             {deleteTarget && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="delete-modal-title"
+                >
                     <div className="bg-white rounded-xl shadow-xl border border-gray-200 w-full max-w-md mx-4 p-6">
-                        <h2 className="text-lg font-semibold text-gray-900 mb-2">Delete Document</h2>
+                        <h2 id="delete-modal-title" className="text-lg font-semibold text-gray-900 mb-2">Delete Document</h2>
                         <p className="text-sm text-gray-600 mb-4">
                             Are you sure you want to permanently delete this document? This action cannot be undone.
                         </p>

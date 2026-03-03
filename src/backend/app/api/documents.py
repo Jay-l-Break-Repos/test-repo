@@ -81,6 +81,35 @@ async def get_document(document_id: int, session: Session = Depends(get_session)
     # Return as DocumentRead with empty versions
     return DocumentRead(**document.dict(), versions=[])
 
+@router.delete("/{document_id}", status_code=200)
+async def delete_document(document_id: int, session: Session = Depends(get_session)):
+    """Permanently delete a document record from the database and its file from disk.
+
+    Args:
+        document_id: The primary key of the document to delete.
+        session: SQLModel database session (injected by FastAPI).
+
+    Returns:
+        A JSON object with a ``message`` key confirming the deletion.
+
+    Raises:
+        HTTPException 404: If no document with the given ID exists.
+    """
+    document = session.get(Document, document_id)
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    # Remove the physical file from disk if it exists
+    if document.path and os.path.exists(document.path):
+        os.remove(document.path)
+
+    # Permanently delete the record from the database (hard delete)
+    session.delete(document)
+    session.commit()
+
+    return {"success": True, "message": f'Document "{document.name}" has been permanently deleted.'}
+
+
 @router.get("/{document_id}/view")
 async def view_document(
     document_id: int,

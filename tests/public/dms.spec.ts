@@ -1,7 +1,4 @@
 import { test, expect, request as playwrightRequest } from '@playwright/test';
-import * as path from 'path';
-import * as fs from 'fs';
-import * as os from 'os';
 
 const API_BASE = 'http://localhost:8000';
 
@@ -278,52 +275,34 @@ test.describe('Public Environment E2E', () => {
 
     // ---------------------------------------------------------------------------
     // 7. DELETE /api/documents/{id} — Backend API Tests
-    //
-    // These tests call the FastAPI backend directly (no browser UI) using
-    // Playwright's APIRequestContext to verify the deletion endpoint in isolation.
     // ---------------------------------------------------------------------------
     test.describe('7. DELETE /api/documents/{id} — Backend API', () => {
 
-        /**
-         * Helper: upload a document via the API and return its ID.
-         * Uses multipart/form-data to POST to /api/documents/upload.
-         */
-        async function uploadDocumentViaApi(fileName: string, content: string): Promise<number> {
+        test('Successful deletion: returns 200, removes DB record', async () => {
             const apiContext = await playwrightRequest.newContext({ baseURL: API_BASE });
-            const response = await apiContext.post('/api/documents/upload', {
+
+            // Upload a document to get a real ID
+            const uploadResponse = await apiContext.post('/api/documents/upload', {
                 multipart: {
                     file: {
-                        name: fileName,
+                        name: 'api-delete-success.txt',
                         mimeType: 'text/plain',
-                        buffer: Buffer.from(content),
+                        buffer: Buffer.from('Content for deletion test.'),
                     },
                 },
             });
-            expect(response.status()).toBe(200);
-            const body = await response.json();
-            await apiContext.dispose();
-            return body.id as number;
-        }
+            expect(uploadResponse.status()).toBe(200);
+            const uploaded = await uploadResponse.json();
+            const docId = uploaded.id as number;
 
-        test('Successful deletion: returns 200, removes DB record', async () => {
-            // Arrange — upload a document so we have a real ID to delete
-            const docId = await uploadDocumentViaApi(
-                'api-delete-success.txt',
-                'Content for deletion test.'
-            );
-
-            const apiContext = await playwrightRequest.newContext({ baseURL: API_BASE });
-
-            // Act — delete the document
+            // Delete it
             const deleteResponse = await apiContext.delete(`/api/documents/${docId}`);
-
-            // Assert — correct status and response shape
             expect(deleteResponse.status()).toBe(200);
             const body = await deleteResponse.json();
             expect(body.success).toBe(true);
             expect(body.message).toContain('permanently deleted');
 
-            // Assert — document is no longer retrievable
+            // Verify it's gone
             const getResponse = await apiContext.get(`/api/documents/${docId}`);
             expect(getResponse.status()).toBe(404);
 
@@ -333,10 +312,7 @@ test.describe('Public Environment E2E', () => {
         test('404 error: deleting a non-existent document returns 404', async () => {
             const apiContext = await playwrightRequest.newContext({ baseURL: API_BASE });
 
-            // Use an ID that is extremely unlikely to exist
-            const nonExistentId = 999999999;
-            const response = await apiContext.delete(`/api/documents/${nonExistentId}`);
-
+            const response = await apiContext.delete('/api/documents/999999999');
             expect(response.status()).toBe(404);
             const body = await response.json();
             expect(body.detail).toBe('Document not found');
@@ -345,25 +321,29 @@ test.describe('Public Environment E2E', () => {
         });
 
         test('Edge case: deletion succeeds even when physical file is already missing', async () => {
-            // Arrange — upload a document to get a valid DB record
-            const docId = await uploadDocumentViaApi(
-                'api-delete-no-file.txt',
-                'Content for missing-file edge case.'
-            );
-
-            // Simulate the file already being absent by deleting it once first,
-            // then verifying a second DELETE call still returns 404 (record gone),
-            // confirming the endpoint handles a missing file path gracefully.
             const apiContext = await playwrightRequest.newContext({ baseURL: API_BASE });
 
-            // First deletion — file exists on disk, should succeed cleanly
+            // Upload a document
+            const uploadResponse = await apiContext.post('/api/documents/upload', {
+                multipart: {
+                    file: {
+                        name: 'api-delete-no-file.txt',
+                        mimeType: 'text/plain',
+                        buffer: Buffer.from('Content for missing-file edge case.'),
+                    },
+                },
+            });
+            expect(uploadResponse.status()).toBe(200);
+            const uploaded = await uploadResponse.json();
+            const docId = uploaded.id as number;
+
+            // First delete — succeeds normally
             const firstDelete = await apiContext.delete(`/api/documents/${docId}`);
             expect(firstDelete.status()).toBe(200);
             const firstBody = await firstDelete.json();
             expect(firstBody.success).toBe(true);
 
-            // Second deletion — record is gone AND file is gone; endpoint must return 404
-            // (not a 500), proving it handles the missing-file path without crashing
+            // Second delete — record gone, must return 404 not 500
             const secondDelete = await apiContext.delete(`/api/documents/${docId}`);
             expect(secondDelete.status()).toBe(404);
 

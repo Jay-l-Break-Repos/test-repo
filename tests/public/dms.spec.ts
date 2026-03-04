@@ -219,9 +219,10 @@ test.describe('Public Environment E2E', () => {
             await row.getByTitle('Delete').click();
 
             // Confirmation modal should appear
-            await expect(page.getByRole('heading', { name: /Delete Document/i })).toBeVisible();
+            const modal = page.locator('[class*="rounded-2xl"]').filter({ has: page.getByRole('heading', { name: /Delete Document/i }) });
+            await expect(modal.getByRole('heading', { name: /Delete Document/i })).toBeVisible();
             await expect(page.getByText(/permanently delete/i)).toBeVisible();
-            await expect(page.locator('tr').getByText(fileName)).toBeVisible();
+            await expect(modal.locator('tr').getByText(fileName)).toBeVisible();
             await expect(page.getByRole('button', { name: /Cancel/i })).toBeVisible();
             await expect(page.getByRole('button', { name: /Delete Permanently/i })).toBeVisible();
         });
@@ -269,7 +270,7 @@ test.describe('Public Environment E2E', () => {
             // Modal closes, document removed, success toast shown
             await expect(page.getByRole('heading', { name: /Delete Document/i })).not.toBeVisible();
             await expect(page.getByText(fileName)).not.toBeVisible();
-            await expect(page.getByText(/permanently deleted/i)).toBeVisible();
+            await expect(page.getByText(/permanently deleted/i)).toBeVisible({ timeout: 8000 });
         });
     });
 

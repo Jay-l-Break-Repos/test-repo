@@ -177,7 +177,7 @@ export const Documents = () => {
                                                         <button
                                                             onClick={(e) => handleDeleteClick(e, doc)}
                                                             className="p-2 hover:bg-rose-50 text-gray-400 hover:text-rose-600 rounded-lg transition-colors"
-                                                            title="Delete Document"
+                                                            title="Delete"
                                                         >
                                                             <Trash2 size={18} />
                                                         </button>
@@ -228,7 +228,7 @@ export const Documents = () => {
                                                         <FileText size={16} className="text-gray-500" />
                                                     </div>
                                                     <span className="text-sm font-medium text-gray-800">
-                                                        &quot;{deleteTarget.name}&quot;
+                                                        {deleteTarget.name}
                                                     </span>
                                                 </div>
                                             </td>

@@ -269,11 +269,12 @@ test.describe('Public Environment E2E', () => {
 
             // Modal closes, document removed, success toast shown
             await expect(page.getByRole('heading', { name: /Delete Document/i })).not.toBeVisible();
-            await expect(page.getByText(fileName)).not.toBeVisible();
-            // react-hot-toast renders each toast message with role="status" aria-live="polite"
-            await expect(
-                page.getByRole('status').filter({ hasText: /permanently deleted/i })
-            ).toBeVisible({ timeout: 8000 });
+            // Scope the "gone from list" check to the main table only, so the toast
+            // message (which also contains the filename) doesn't cause a false match
+            const mainTable = page.locator('table').first();
+            await expect(mainTable.getByText(fileName)).not.toBeVisible();
+            // Toast uses react-hot-toast showSuccess — same pattern as the upload toast
+            await expect(page.getByText(/permanently deleted/i)).toBeVisible({ timeout: 8000 });
         });
     });
 

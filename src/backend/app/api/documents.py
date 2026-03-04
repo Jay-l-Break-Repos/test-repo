@@ -85,25 +85,31 @@ async def get_document(document_id: int, session: Session = Depends(get_session)
 async def delete_document(document_id: int, session: Session = Depends(get_session)):
     """Permanently delete a document record from the database and its file from disk.
 
+    Route:  DELETE /api/documents/{document_id}
+
     Args:
-        document_id: The primary key of the document to delete.
-        session: SQLModel database session (injected by FastAPI).
+        document_id: The primary key (int) of the document to delete, taken from
+                     the URL path parameter.
+        session: SQLModel database session (injected by FastAPI via Depends).
 
     Returns:
-        A JSON object with ``success`` (bool) and ``message`` (str) confirming deletion.
+        200 JSON: ``{"success": true, "message": "Document \"<name>\" has been permanently deleted."}``
 
     Raises:
-        HTTPException 404: If no document with the given ID exists.
+        HTTPException 404: When no document with the given ID exists in the database.
+        HTTPException 500: Propagated automatically by FastAPI for unexpected DB errors.
     """
+    # 1. Verify the document exists — return 404 immediately if not found
     document = session.get(Document, document_id)
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
 
-    # Remove the physical file from disk if it exists (gracefully skip if missing)
+    # 2. Remove the physical file from disk.
+    #    Guard with os.path.exists so a missing file never causes a 500 error.
     if document.path and os.path.exists(document.path):
         os.remove(document.path)
 
-    # Permanently delete the record from the database (hard delete — no soft delete)
+    # 3. Hard-delete the DB record (no soft-delete / is_deleted flag).
     session.delete(document)
     session.commit()
 

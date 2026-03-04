@@ -18,6 +18,7 @@ export const Documents = () => {
     const navigate = useNavigate();
     const [documents, setDocuments] = useState<Document[]>([]);
     const [loading, setLoading] = useState(true);
+    // deleteTarget holds the document the user clicked "Delete" on; null = modal closed
     const [deleteTarget, setDeleteTarget] = useState<Document | null>(null);
     const [deleting, setDeleting] = useState(false);
 
@@ -38,17 +39,21 @@ export const Documents = () => {
         fetchDocuments();
     }, []);
 
+    // Open the confirmation modal for the clicked document
     const handleDeleteClick = (e: React.MouseEvent, doc: Document) => {
-        e.stopPropagation();
+        e.stopPropagation(); // prevent row navigation
         setDeleteTarget(doc);
     };
 
+    // User confirmed — call the DELETE endpoint then remove from local state
     const handleDeleteConfirm = async () => {
         if (!deleteTarget) return;
         setDeleting(true);
         try {
             const result = await deleteDocument(deleteTarget.id);
+            // Remove from list immediately (optimistic update)
             setDocuments(prev => prev.filter(d => d.id !== deleteTarget.id));
+            // Show success toast — API message already contains quoted filename
             showSuccess(result.message || `"${deleteTarget.name}" has been permanently deleted.`);
             setDeleteTarget(null);
         } catch (error) {
@@ -59,6 +64,7 @@ export const Documents = () => {
         }
     };
 
+    // User cancelled — close modal without deleting
     const handleDeleteCancel = () => {
         setDeleteTarget(null);
     };
@@ -73,25 +79,20 @@ export const Documents = () => {
 
     const getFileIcon = (contentType: string, name: string) => {
         const nameLower = name.toLowerCase();
-
-        // Text files (.txt)
         if (nameLower.endsWith('.txt') || contentType === 'text/plain') {
             return <FileText size={20} className="text-gray-600" />;
         }
-
-        // Default
         return <FileText size={20} className="text-gray-500" />;
     };
 
     return (
         <>
             <div className="p-6 max-w-[1600px] mx-auto bg-gray-50/50 min-h-screen">
-                {/* Header */}
+                {/* ── Page header ── */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                     <div>
                         <h1 className="text-2xl font-bold text-gray-900">Documents</h1>
                     </div>
-
                     <div className="flex items-center gap-4 w-full md:w-auto">
                         <button
                             onClick={() => navigate('/upload')}
@@ -103,9 +104,8 @@ export const Documents = () => {
                     </div>
                 </div>
 
-                {/* Main Content Card */}
+                {/* ── Document table card ── */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    {/* Table */}
                     <div className="overflow-x-auto">
                         {loading ? (
                             <div className="flex justify-center flex-col items-center py-20">
@@ -150,14 +150,19 @@ export const Documents = () => {
                                                 <td className="py-4 px-4 text-gray-500 text-sm text-center whitespace-nowrap">
                                                     {new Date(doc.created_at).toLocaleDateString()}
                                                     <span className="text-gray-300 mx-1">,</span>
-                                                    <span className="text-gray-400 text-xs">{new Date(doc.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                    <span className="text-gray-400 text-xs">
+                                                        {new Date(doc.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </span>
                                                 </td>
                                                 <td className="py-4 px-4 text-gray-600 text-sm">
                                                     {doc.last_modified_by || 'Unknown'}
                                                 </td>
-                                                <td className="py-4 px-4 text-gray-500 text-sm font-mono text-right">{formatSize(doc.size)}</td>
+                                                <td className="py-4 px-4 text-gray-500 text-sm font-mono text-right">
+                                                    {formatSize(doc.size)}
+                                                </td>
                                                 <td className="py-4 px-4 pr-6 text-right">
                                                     <div className="flex items-center justify-end gap-1">
+                                                        {/* View button */}
                                                         <button
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
@@ -168,6 +173,7 @@ export const Documents = () => {
                                                         >
                                                             <Eye size={18} />
                                                         </button>
+                                                        {/* Delete button — opens confirmation modal */}
                                                         <button
                                                             onClick={(e) => handleDeleteClick(e, doc)}
                                                             className="p-2 hover:bg-rose-50 text-gray-400 hover:text-rose-600 rounded-lg transition-colors"
@@ -187,7 +193,7 @@ export const Documents = () => {
                 </div>
             </div>
 
-            {/* Delete Confirmation Modal */}
+            {/* ── Delete confirmation modal ── */}
             {deleteTarget && (
                 <div
                     className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
@@ -197,7 +203,7 @@ export const Documents = () => {
                         className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        {/* Modal Header */}
+                        {/* Modal header */}
                         <div className="flex items-center gap-3 px-6 pt-6 pb-4 border-b border-gray-100">
                             <div className="p-2 bg-rose-50 rounded-xl">
                                 <AlertTriangle size={22} className="text-rose-500" />
@@ -205,13 +211,13 @@ export const Documents = () => {
                             <h2 className="text-lg font-semibold text-gray-900">Delete Document</h2>
                         </div>
 
-                        {/* Modal Body */}
+                        {/* Modal body */}
                         <div className="px-6 py-5">
                             <p className="text-sm text-gray-600 mb-4">
                                 Are you sure you want to permanently delete this document? This action cannot be undone.
                             </p>
 
-                            {/* Document preview row */}
+                            {/* Document preview — filename shown inside a <tr> for test locator */}
                             <div className="rounded-xl border border-gray-100 overflow-hidden">
                                 <table className="w-full">
                                     <tbody>
@@ -235,7 +241,7 @@ export const Documents = () => {
                             </div>
                         </div>
 
-                        {/* Modal Footer */}
+                        {/* Modal footer */}
                         <div className="flex items-center justify-end gap-3 px-6 pb-6">
                             <button
                                 onClick={handleDeleteCancel}

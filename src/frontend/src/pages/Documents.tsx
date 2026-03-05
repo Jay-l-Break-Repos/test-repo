@@ -274,7 +274,7 @@ export const Documents = () => {
                                 ) : (
                                     <>
                                         <Trash2 size={16} />
-                                        Delete Permanently
+                                        Delete
                                     </>
                                 )}
                             </button>

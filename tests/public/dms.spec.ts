@@ -224,7 +224,7 @@ test.describe('Public Environment E2E', () => {
             await expect(page.getByText(/permanently delete/i)).toBeVisible();
             await expect(modal.locator('tr').getByText(fileName)).toBeVisible();
             await expect(page.getByRole('button', { name: /Cancel/i })).toBeVisible();
-            await expect(page.getByRole('button', { name: /Delete Permanently/i })).toBeVisible();
+            await expect(page.getByRole('button', { name: /Delete/i })).toBeVisible();
         });
 
         test('Cancel button closes modal without deleting', async ({ page }) => {
@@ -265,7 +265,7 @@ test.describe('Public Environment E2E', () => {
             const row = page.locator('tr', { has: page.getByText(fileName) });
             await row.getByTitle('Delete').click();
             await expect(page.getByRole('heading', { name: /Delete Document/i })).toBeVisible();
-            await page.getByRole('button', { name: /Delete Permanently/i }).click();
+            await page.getByRole('button', { name: 'Delete', exact: true }).click();
 
             // Modal closes, document removed, success toast shown
             await expect(page.getByRole('heading', { name: /Delete Document/i })).not.toBeVisible();

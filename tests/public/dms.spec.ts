@@ -272,7 +272,7 @@ test.describe('Public Environment E2E', () => {
             await expect(page.getByText(fileName)).not.toBeVisible();
             // react-hot-toast renders each toast message with role="status" aria-live="polite"
             await expect(
-                page.getByRole('status').filter({ hasText: /permanently deleted/i })
+                page.getByRole('status').filter({ hasText: /deleted successfully/i })
             ).toBeVisible({ timeout: 8000 });
         });
     });

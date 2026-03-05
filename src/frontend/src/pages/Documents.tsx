@@ -53,9 +53,7 @@ export const Documents = () => {
             await deleteDocument(deleteTarget.id);
             // Remove from list immediately (optimistic update)
             setDocuments(prev => prev.filter(d => d.id !== deleteTarget.id));
-            // Show success toast — must match /permanently deleted/i for E2E tests
-            // and must NOT contain the filename (to avoid false-positive visibility checks)
-            showSuccess('Document has been permanently deleted.');
+            showSuccess('Document deleted successfully');
             setDeleteTarget(null);
         } catch (error) {
             console.error('Failed to delete document:', error);

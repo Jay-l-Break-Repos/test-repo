@@ -63,7 +63,7 @@ export const DocumentView: React.FC = () => {
         setDeleting(true);
         try {
             await deleteDocument(document.id);
-            showSuccess('Document has been permanently deleted.');
+            showSuccess('Document deleted successfully');
             setShowDeleteModal(false);
             navigate('/documents');
         } catch (error) {

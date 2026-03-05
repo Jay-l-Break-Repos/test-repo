@@ -81,9 +81,8 @@ async def read_documents(
 @router.get("/{document_id}")
 async def get_document(document_id: int, session: Session = Depends(get_session)):
     document = session.get(Document, document_id)
-    if not document:
+    if not document or document.deleted_at is not None:
         raise HTTPException(status_code=404, detail="Document not found")
-    # Return as DocumentRead with empty versions
     return DocumentRead(**document.dict(), versions=[])
 
 @router.delete("/{document_id}")

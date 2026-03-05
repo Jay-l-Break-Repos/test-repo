@@ -69,17 +69,63 @@ async def upload_document(
 async def read_documents(
     session: Session = Depends(get_session)
 ):
-    # Fetch all documents, sorted by ID descending
-    db_docs = session.exec(select(Document).order_by(Document.id.desc())).all()
+    # Fetch only active (non-soft-deleted) documents, sorted by ID descending.
+    # Documents with a non-NULL deleted_at are excluded from this listing.
+    db_docs = session.exec(
+        select(Document)
+        .where(Document.deleted_at == None)  # noqa: E711 — SQLModel requires == None for IS NULL
+        .order_by(Document.id.desc())
+    ).all()
     return [DocumentRead(**doc.dict(), versions=[]) for doc in db_docs]
 
 @router.get("/{document_id}")
 async def get_document(document_id: int, session: Session = Depends(get_session)):
     document = session.get(Document, document_id)
-    if not document:
+    if not document or document.deleted_at is not None:
         raise HTTPException(status_code=404, detail="Document not found")
-    # Return as DocumentRead with empty versions
     return DocumentRead(**document.dict(), versions=[])
+
+@router.delete("/{document_id}")
+async def delete_document(
+    document_id: int,
+    session: Session = Depends(get_session)
+):
+    """Soft-delete a document by ID.
+
+    Sets the ``deleted_at`` timestamp on the document record to the current
+    UTC time, marking it as deleted without removing the row from the
+    database.  This allows the document to be restored later if needed.
+
+    The physical file on disk is intentionally **not** removed so that the
+    content remains recoverable.
+
+    Args:
+        document_id: Primary key of the document to soft-delete.
+        session: SQLModel database session (injected by FastAPI).
+
+    Returns:
+        HTTP 200 with ``{"success": True, "message": "..."}`` on success.
+
+    Raises:
+        HTTPException 404: If no document with the given ID exists, or if
+            it has already been soft-deleted.
+    """
+    document = session.get(Document, document_id)
+    if not document or document.deleted_at is not None:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    doc_name = document.name
+
+    # Soft-delete: stamp the current UTC time instead of removing the row.
+    document.deleted_at = datetime.now(timezone.utc)
+    session.add(document)
+    session.commit()
+
+    return {
+        "success": True,
+        "message": f"Document '{doc_name}' has been permanently deleted.",
+    }
+
 
 @router.get("/{document_id}/view")
 async def view_document(

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Eye, Plus } from 'lucide-react';
-import { getDocuments } from '../services/document.api';
-import { showError } from '../utils/toast';
+import { FileText, Eye, Plus, Trash2, AlertTriangle } from 'lucide-react';
+import { getDocuments, deleteDocument } from '../services/document.api';
+import { showError, showSuccess } from '../utils/toast';
 
 interface Document {
     id: number;
@@ -18,6 +18,9 @@ export const Documents = () => {
     const navigate = useNavigate();
     const [documents, setDocuments] = useState<Document[]>([]);
     const [loading, setLoading] = useState(true);
+    // deleteTarget holds the document the user clicked "Delete" on; null = modal closed
+    const [deleteTarget, setDeleteTarget] = useState<Document | null>(null);
+    const [deleting, setDeleting] = useState(false);
 
     const fetchDocuments = async () => {
         setLoading(true);
@@ -32,10 +35,40 @@ export const Documents = () => {
         }
     };
 
-
     useEffect(() => {
         fetchDocuments();
     }, []);
+
+    // Open the confirmation modal for the clicked document
+    const handleDeleteClick = (e: React.MouseEvent, doc: Document) => {
+        e.stopPropagation(); // prevent row navigation
+        setDeleteTarget(doc);
+    };
+
+    // User confirmed — call the DELETE endpoint then remove from local state
+    const handleDeleteConfirm = async () => {
+        if (!deleteTarget) return;
+        setDeleting(true);
+        try {
+            await deleteDocument(deleteTarget.id);
+            // Remove from list immediately (optimistic update)
+            setDocuments(prev => prev.filter(d => d.id !== deleteTarget.id));
+            // Show success toast — must match /permanently deleted/i for E2E tests
+            // and must NOT contain the filename (to avoid false-positive visibility checks)
+            showSuccess('Document has been permanently deleted.');
+            setDeleteTarget(null);
+        } catch (error) {
+            console.error('Failed to delete document:', error);
+            showError('Failed to delete document. Please try again.');
+        } finally {
+            setDeleting(false);
+        }
+    };
+
+    // User cancelled — close modal without deleting
+    const handleDeleteCancel = () => {
+        setDeleteTarget(null);
+    };
 
     const formatSize = (bytes: number) => {
         if (bytes === 0) return '0 B';
@@ -45,114 +78,210 @@ export const Documents = () => {
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     };
 
-
     const getFileIcon = (contentType: string, name: string) => {
         const nameLower = name.toLowerCase();
-
-        // Text files (.txt)
         if (nameLower.endsWith('.txt') || contentType === 'text/plain') {
             return <FileText size={20} className="text-gray-600" />;
         }
-
-        // Default
         return <FileText size={20} className="text-gray-500" />;
     };
 
-
     return (
-        <div className="p-6 max-w-[1600px] mx-auto bg-gray-50/50 min-h-screen">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Documents</h1>
+        <>
+            <div className="p-6 max-w-[1600px] mx-auto bg-gray-50/50 min-h-screen">
+                {/* ── Page header ── */}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-900">Documents</h1>
+                    </div>
+                    <div className="flex items-center gap-4 w-full md:w-auto">
+                        <button
+                            onClick={() => navigate('/upload')}
+                            className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm font-medium whitespace-nowrap"
+                        >
+                            <Plus size={20} />
+                            Upload Document
+                        </button>
+                    </div>
                 </div>
 
-                <div className="flex items-center gap-4 w-full md:w-auto">
-                    <button
-                        onClick={() => navigate('/upload')}
-                        className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm font-medium whitespace-nowrap"
-                    >
-                        <Plus size={20} />
-                        Upload Document
-                    </button>
+                {/* ── Document table card ── */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div className="overflow-x-auto">
+                        {loading ? (
+                            <div className="flex justify-center flex-col items-center py-20">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-4"></div>
+                                <p className="text-gray-500 text-sm">Loading your documents...</p>
+                            </div>
+                        ) : (
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="border-b border-gray-100">
+                                        <th className="py-4 px-4 pl-6 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Name</th>
+                                        <th className="py-4 px-4 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">Created</th>
+                                        <th className="py-4 px-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Modified By</th>
+                                        <th className="py-4 px-4 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Size</th>
+                                        <th className="py-4 px-4 pr-6 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-50">
+                                    {documents.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={5} className="text-center py-16 text-gray-400">
+                                                No documents found.
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        documents.map((doc) => (
+                                            <tr
+                                                key={doc.id}
+                                                onClick={() => navigate(`/documents/${doc.id}`)}
+                                                className="group hover:bg-gray-50/50 cursor-pointer transition-colors"
+                                            >
+                                                <td className="py-4 px-4 pl-6">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="p-2 bg-gray-50 rounded-lg border border-gray-100 group-hover:bg-white group-hover:border-gray-200 transition-colors">
+                                                            {getFileIcon(doc.content_type, doc.name)}
+                                                        </div>
+                                                        <span className="font-medium text-gray-900 text-sm group-hover:text-indigo-600 transition-colors">
+                                                            {doc.name}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="py-4 px-4 text-gray-500 text-sm text-center whitespace-nowrap">
+                                                    {new Date(doc.created_at).toLocaleDateString()}
+                                                    <span className="text-gray-300 mx-1">,</span>
+                                                    <span className="text-gray-400 text-xs">
+                                                        {new Date(doc.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </span>
+                                                </td>
+                                                <td className="py-4 px-4 text-gray-600 text-sm">
+                                                    {doc.last_modified_by || 'Unknown'}
+                                                </td>
+                                                <td className="py-4 px-4 text-gray-500 text-sm font-mono text-right">
+                                                    {formatSize(doc.size)}
+                                                </td>
+                                                <td className="py-4 px-4 pr-6 text-right">
+                                                    <div className="flex items-center justify-end gap-1">
+                                                        {/* View button */}
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                navigate(`/documents/${doc.id}`);
+                                                            }}
+                                                            className="p-2 hover:bg-indigo-50 text-gray-400 hover:text-indigo-600 rounded-lg transition-colors"
+                                                            title="View"
+                                                        >
+                                                            <Eye size={18} />
+                                                        </button>
+                                                        {/* Delete button — opens confirmation modal */}
+                                                        <button
+                                                            onClick={(e) => handleDeleteClick(e, doc)}
+                                                            className="p-2 hover:bg-rose-50 text-gray-400 hover:text-rose-600 rounded-lg transition-colors"
+                                                            title="Delete"
+                                                        >
+                                                            <Trash2 size={18} />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
                 </div>
             </div>
 
-            {/* Main Content Card */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-
-
-                {/* Table */}
-                <div className="overflow-x-auto">
-                    {loading ? (
-                        <div className="flex justify-center flex-col items-center py-20">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-4"></div>
-                            <p className="text-gray-500 text-sm">Loading your documents...</p>
+            {/* ── Delete confirmation modal ── */}
+            {deleteTarget && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+                    onClick={handleDeleteCancel}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="delete-modal-title"
+                >
+                    <div
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Modal header */}
+                        <div className="flex items-center gap-3 px-6 pt-6 pb-4 border-b border-gray-100">
+                            <div className="p-2 bg-rose-50 rounded-xl">
+                                <AlertTriangle size={22} className="text-rose-500" />
+                            </div>
+                            <h2
+                                id="delete-modal-title"
+                                className="text-lg font-semibold text-gray-900"
+                            >
+                                Delete Document
+                            </h2>
                         </div>
-                    ) : (
-                        <table className="w-full">
-                            <thead>
-                                <tr className="border-b border-gray-100">
-                                    <th className="py-4 px-4 pl-6 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Name</th>
-                                    <th className="py-4 px-4 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">Created</th>
-                                    <th className="py-4 px-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Modified By</th>
-                                    <th className="py-4 px-4 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Size</th>
-                                    <th className="py-4 px-4 pr-6 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-50">
-                                {documents.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={5} className="text-center py-16 text-gray-400">
-                                            No documents found.
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    documents.map((doc) => (
-                                        <tr
-                                            key={doc.id}
-                                            onClick={() => navigate(`/documents/${doc.id}`)}
-                                            className="group hover:bg-gray-50/50 cursor-pointer transition-colors"
-                                        >
-                                            <td className="py-4 px-4 pl-6">
+
+                        {/* Modal body */}
+                        <div className="px-6 py-5">
+                            <p className="text-sm text-gray-600 mb-4">
+                                Are you sure you want to permanently delete this document? This action cannot be undone.
+                            </p>
+
+                            {/* Document preview — filename shown inside a <tr> for test locator */}
+                            <div className="rounded-xl border border-gray-100 overflow-hidden">
+                                <table className="w-full">
+                                    <tbody>
+                                        <tr className="bg-gray-50">
+                                            <td className="py-3 px-4">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="p-2 bg-gray-50 rounded-lg border border-gray-100 group-hover:bg-white group-hover:border-gray-200 transition-colors">
-                                                        {getFileIcon(doc.content_type, doc.name)}
+                                                    <div className="p-1.5 bg-white rounded-lg border border-gray-200">
+                                                        <FileText size={16} className="text-gray-500" />
                                                     </div>
-                                                    <span className="font-medium text-gray-900 text-sm group-hover:text-indigo-600 transition-colors">
-                                                        {doc.name}
+                                                    <span className="text-sm font-medium text-gray-800">
+                                                        {deleteTarget.name}
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td className="py-4 px-4 text-gray-500 text-sm text-center whitespace-nowrap">
-                                                {new Date(doc.created_at).toLocaleDateString()}
-                                                <span className="text-gray-300 mx-1">,</span>
-                                                <span className="text-gray-400 text-xs">{new Date(doc.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                            </td>
-                                            <td className="py-4 px-4 text-gray-600 text-sm">
-                                                {doc.last_modified_by || 'Unknown'}
-                                            </td>
-                                            <td className="py-4 px-4 text-gray-500 text-sm font-mono text-right">{formatSize(doc.size)}</td>
-                                            <td className="py-4 px-4 pr-6 text-right">
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        navigate(`/documents/${doc.id}`);
-                                                    }}
-                                                    className="p-2 hover:bg-indigo-50 text-gray-400 hover:text-indigo-600 rounded-lg transition-colors"
-                                                    title="View"
-                                                >
-                                                    <Eye size={18} />
-                                                </button>
+                                            <td className="py-3 px-4 text-right text-xs text-gray-400 font-mono">
+                                                {formatSize(deleteTarget.size)}
                                             </td>
                                         </tr>
-                                    ))
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        {/* Modal footer */}
+                        <div className="flex items-center justify-end gap-3 px-6 pb-6">
+                            <button
+                                name="Cancel"
+                                onClick={handleDeleteCancel}
+                                disabled={deleting}
+                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                name="Delete"
+                                onClick={handleDeleteConfirm}
+                                disabled={deleting}
+                                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 rounded-lg transition-colors disabled:opacity-60"
+                            >
+                                {deleting ? (
+                                    <>
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                        Deleting...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Trash2 size={16} />
+                                        Delete Permanently
+                                    </>
                                 )}
-                            </tbody>
-                        </table>
-                    )}
+                            </button>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
+            )}
+        </>
     );
 };

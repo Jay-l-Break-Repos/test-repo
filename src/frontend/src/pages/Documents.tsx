@@ -237,7 +237,7 @@ export const Documents = () => {
                                                         <FileText size={16} className="text-gray-500" />
                                                     </div>
                                                     <span className="text-sm font-medium text-gray-800">
-                                                        {deleteTarget.name}
+                                                        &quot;{deleteTarget.name}&quot;
                                                     </span>
                                                 </div>
                                             </td>

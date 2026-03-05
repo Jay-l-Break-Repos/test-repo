@@ -2,8 +2,7 @@ fastapi
 uvicorn[standard]
 python-multipart
 sqlmodel
-psycopg2-binary
-asyncpg
+alembic
 psycopg2-binary
 asyncpg
 python-docx==1.1.2

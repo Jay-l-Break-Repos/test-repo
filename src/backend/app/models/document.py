@@ -11,6 +11,9 @@ class DocumentBase(SQLModel):
     owner_id: int = Field(default=1) # Mock User ID
     last_modified_by: Optional[str] = Field(default="Anonymous")
     extracted_text: Optional[str] = Field(default=None)
+    # Soft-deletion timestamp. NULL means the document is active;
+    # a non-NULL value means the document has been soft-deleted.
+    deleted_at: Optional[datetime] = Field(default=None, nullable=True)
 
 class Document(DocumentBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)

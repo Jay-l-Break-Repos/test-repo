@@ -69,8 +69,13 @@ async def upload_document(
 async def read_documents(
     session: Session = Depends(get_session)
 ):
-    # Fetch all documents, sorted by ID descending
-    db_docs = session.exec(select(Document).order_by(Document.id.desc())).all()
+    # Fetch only active (non-soft-deleted) documents, sorted by ID descending.
+    # Documents with a non-NULL deleted_at are excluded from this listing.
+    db_docs = session.exec(
+        select(Document)
+        .where(Document.deleted_at == None)  # noqa: E711 — SQLModel requires == None for IS NULL
+        .order_by(Document.id.desc())
+    ).all()
     return [DocumentRead(**doc.dict(), versions=[]) for doc in db_docs]
 
 @router.get("/{document_id}")
@@ -86,41 +91,35 @@ async def delete_document(
     document_id: int,
     session: Session = Depends(get_session)
 ):
-    """Permanently delete a document by ID.
+    """Soft-delete a document by ID.
 
-    Removes the document record from the database (hard delete — no soft
-    delete or archiving) and, if the associated file still exists on disk,
-    removes it as well.
+    Sets the ``deleted_at`` timestamp on the document record to the current
+    UTC time, marking it as deleted without removing the row from the
+    database.  This allows the document to be restored later if needed.
+
+    The physical file on disk is intentionally **not** removed so that the
+    content remains recoverable.
 
     Args:
-        document_id: Primary key of the document to delete.
+        document_id: Primary key of the document to soft-delete.
         session: SQLModel database session (injected by FastAPI).
 
     Returns:
         HTTP 200 with ``{"success": True, "message": "..."}`` on success.
 
     Raises:
-        HTTPException 404: If no document with the given ID exists.
+        HTTPException 404: If no document with the given ID exists, or if
+            it has already been soft-deleted.
     """
     document = session.get(Document, document_id)
-    if not document:
+    if not document or document.deleted_at is not None:
         raise HTTPException(status_code=404, detail="Document not found")
 
     doc_name = document.name
-    file_path = document.path
 
-    # Remove the physical file if it still exists on disk.
-    # Gracefully skip if the file is already gone — the DB record must still
-    # be cleaned up regardless.
-    if file_path and os.path.exists(file_path):
-        try:
-            os.remove(file_path)
-        except OSError as exc:
-            # Log the warning but do not abort; DB cleanup takes priority.
-            print(f"WARNING: Could not remove file '{file_path}': {exc}")
-
-    # Hard-delete the record from the database.
-    session.delete(document)
+    # Soft-delete: stamp the current UTC time instead of removing the row.
+    document.deleted_at = datetime.now(timezone.utc)
+    session.add(document)
     session.commit()
 
     return {

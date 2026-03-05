@@ -51,3 +51,17 @@ export const getDocument = async (id: number): Promise<ApiDocument> => {
     const response = await axios.get<ApiDocument>(`/api/documents/${id}`);
     return response.data;
 };
+
+/**
+ * Permanently delete a document by ID.
+ *
+ * Calls DELETE /api/documents/{id} and returns the success response.
+ *
+ * @param id - The document's primary key.
+ * @returns `{ success: true, message: "Document \"<name>\" has been permanently deleted." }`
+ * @throws AxiosError with status 404 if the document does not exist.
+ */
+export const deleteDocument = async (id: number): Promise<{ success: boolean; message: string }> => {
+    const response = await axios.delete<{ success: boolean; message: string }>(`/api/documents/${id}`);
+    return response.data;
+};

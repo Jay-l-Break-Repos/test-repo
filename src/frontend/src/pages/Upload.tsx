@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileCard } from '../components/FileCard';
+import { toast } from '../utils/toast';
 import './Upload.css';
 
 export const Upload: React.FC = () => {
@@ -16,8 +17,20 @@ export const Upload: React.FC = () => {
 
   const handleSubmit = async () => {
     if (!file) return;
-    // File upload logic will be implemented later
-    console.log('Uploading file:', file);
+    
+    try {
+      // File upload logic will be implemented later
+      console.log('Uploading file:', file);
+      
+      // Show success message
+      toast.success('Document uploaded successfully!');
+      
+      // Navigate to documents page
+      navigate('/documents');
+    } catch (error) {
+      console.error('Upload failed:', error);
+      toast.error('Failed to upload document');
+    }
   };
 
   const handleCancel = () => {

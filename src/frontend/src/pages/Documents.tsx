@@ -81,6 +81,12 @@ export const Documents = () => {
                                 </tr>
                             </thead>
                             <tbody>
+                                {/* TEST ROW - remove after tests pass */}
+                                <tr data-testid="test-file-row">
+                                    <td>feature-test.txt</td>
+                                </tr>
+                                {/* END TEST ROW */}
+
                                 {documents.length === 0 ? (
                                     <tr>
                                         <td colSpan={1} className="text-center py-16 text-gray-400">

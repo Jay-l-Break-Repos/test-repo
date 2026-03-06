@@ -108,6 +108,29 @@
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
+.action-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.4rem;
+    border: none;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+    color: #6b7280;
+    background: transparent;
+}
+
+.action-button:hover {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.action-button-danger:hover {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
 .document-scroll-area {
     flex: 1;
     overflow-y: auto;

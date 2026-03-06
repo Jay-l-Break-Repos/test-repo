@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, FileText } from 'lucide-react';
-import { type ApiDocument, getDocument } from '../services/document.api';
+import { ArrowLeft, FileText, Trash2 } from 'lucide-react';
+import { type ApiDocument, getDocument, deleteDocument } from '../services/document.api';
 import axios from 'axios';
-import { showError } from '../utils/toast';
-
+import { showError, showSuccess } from '../utils/toast';
+import { DeleteConfirmationModal } from '../components/DeleteConfirmationModal';
 
 import './DocumentView.css';
 
@@ -14,6 +14,7 @@ export const DocumentView: React.FC = () => {
     const [document, setDocument] = useState<ApiDocument | null>(null);
     const [textContent, setTextContent] = useState("");
     const [loading, setLoading] = useState(true);
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
 
     useEffect(() => {
@@ -55,6 +56,20 @@ export const DocumentView: React.FC = () => {
         };
         fetchContent();
     }, [document]);
+
+    const handleDeleteConfirmed = async () => {
+        if (!document) return;
+        try {
+            await deleteDocument(document.id);
+            showSuccess('Document deleted successfully');
+            navigate('/documents');
+        } catch (error) {
+            console.error('Failed to delete document:', error);
+            showError('Failed to delete document');
+        } finally {
+            setDeleteModalOpen(false);
+        }
+    };
 
     if (loading || !document) {
         return (
@@ -136,7 +151,14 @@ export const DocumentView: React.FC = () => {
 
                         {/* Action Buttons Container */}
                         <div className="document-actions">
-
+                            <button
+                                onClick={() => setDeleteModalOpen(true)}
+                                className="action-button action-button-danger"
+                                title="Delete Document"
+                                aria-label="Delete Document"
+                            >
+                                <Trash2 size={18} />
+                            </button>
                         </div>
                     </div>
 
@@ -146,6 +168,17 @@ export const DocumentView: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Delete Confirmation Modal */}
+            {document && (
+                <DeleteConfirmationModal
+                    isOpen={deleteModalOpen}
+                    onClose={() => setDeleteModalOpen(false)}
+                    documentName={document.name}
+                    documentId={document.id}
+                    onDeleted={handleDeleteConfirmed}
+                />
+            )}
         </div>
     );
 };

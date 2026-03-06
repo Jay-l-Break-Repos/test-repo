@@ -127,6 +127,55 @@ async def delete_document(
     }
 
 
+@router.delete("/{document_id}/permanent")
+async def permanently_delete_document(
+    document_id: int,
+    session: Session = Depends(get_session)
+):
+    """Permanently delete a document by ID.
+
+    Removes the document record entirely from the database **and** deletes
+    the associated file from disk.  This operation is irreversible — unlike
+    the soft-delete endpoint (``DELETE /{document_id}``), there is no way to
+    recover a permanently deleted document.
+
+    Args:
+        document_id: Primary key of the document to permanently delete.
+        session: SQLModel database session (injected by FastAPI).
+
+    Returns:
+        HTTP 200 with ``{"success": True, "message": "..."}`` on success.
+
+    Raises:
+        HTTPException 404: If no document with the given ID exists (including
+            documents that have already been soft-deleted).
+    """
+    document = session.get(Document, document_id)
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    doc_name = document.name
+    doc_path = document.path
+
+    # Remove the physical file from disk if it exists.
+    if doc_path and os.path.exists(doc_path):
+        try:
+            os.remove(doc_path)
+        except OSError as exc:
+            # Log the error but do not abort — the DB record should still be
+            # removed so the document is no longer accessible via the API.
+            print(f"WARNING: Could not remove file '{doc_path}': {exc}")
+
+    # Permanently remove the database record.
+    session.delete(document)
+    session.commit()
+
+    return {
+        "success": True,
+        "message": f"Document '{doc_name}' has been permanently deleted.",
+    }
+
+
 @router.get("/{document_id}/view")
 async def view_document(
     document_id: int,

@@ -42,31 +42,25 @@ function AppContent() {
         maxWidth: (isDocumentView || isHome) ? '100%' : '1200px'
       }}>
         <Routes>
-          {/* DIAGNOSTIC: Explicit route logging */}
-          <Route 
-            path="/" 
-            element={<Home />} 
-            handle={() => console.log('Home route matched')} 
-          />
+          {/* Home route */}
+          <Route path="/" element={<Home />} />
+          
+          {/* DIAGNOSTIC: Documents route with container */}
           <Route 
             path="/documents" 
             element={
-              <>
-                {console.log('Documents route matched')}
+              <div id="documents-container">
+                <span>DOCUMENTS_CONTAINER_LOADED</span>
                 <Documents />
-              </>
+              </div>
             } 
           />
-          <Route 
-            path="/documents/:id" 
-            element={<DocumentView />} 
-            handle={() => console.log('Document View route matched')} 
-          />
-          <Route 
-            path="/upload" 
-            element={<Upload />} 
-            handle={() => console.log('Upload route matched')} 
-          />
+          
+          {/* IMPORTANT: More specific route AFTER generic route */}
+          <Route path="/documents/:id" element={<DocumentView />} />
+          
+          {/* Upload route */}
+          <Route path="/upload" element={<Upload />} />
         </Routes>
       </main>
     </div>

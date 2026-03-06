@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Upload as UploadIcon, FileText, AlertCircle, Info, ArrowLeft } from 'lucide-react';
 import { uploadDocument } from '../services/document.api';
-import { showSuccess } from '../utils/toast';
+import { showSuccess, showError } from '../utils/toast';
 import { getBrowserId } from '../utils/user';
 import './Upload.css';
 
@@ -45,22 +45,50 @@ export const Upload = () => {
 
     const handleUpload = async () => {
         if (!file) return;
+
+        // Reset previous states
         setStatus('uploading');
         setProgress(0);
+        setErrorMessage('');
 
         try {
-            const userId = getBrowserId(); // Get session/browser ID
-            await uploadDocument(file, (percent) => setProgress(percent), userId);
+            // Get browser/session ID
+            const userId = getBrowserId();
+
+            // Perform synchronous upload with progress tracking
+            const uploadedDocument = await uploadDocument(
+                file, 
+                (percent) => setProgress(percent), 
+                userId
+            );
+
+            // Validate upload success
+            if (!uploadedDocument || !uploadedDocument.id) {
+                throw new Error('Document upload failed');
+            }
+
+            // Set success status
             setStatus('success');
+            
+            // Show success message
             showSuccess('Document uploaded successfully!');
 
-            setTimeout(() => {
-                navigate('/documents');
-            }, 1500);
+            // Short delay to show success message
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            // Navigate to documents page
+            navigate('/documents');
+
         } catch (error: any) {
+            console.error('Upload failed:', error);
+            
+            // Set error state
             setStatus('error');
             const detail = error.response?.data?.detail || 'Upload failed. Please try again.';
             setErrorMessage(detail);
+            
+            // Show error toast
+            showError(detail);
         }
     };
 

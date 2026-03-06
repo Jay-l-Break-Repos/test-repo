@@ -4,6 +4,7 @@ import logging
 from fastapi import APIRouter, Depends, File, UploadFile, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
+from datetime import datetime
 
 from .models import Document
 from .database import get_session, init_db
@@ -31,39 +32,73 @@ async def upload_document(
     # Log file details
     logger.info(f"Uploading file: {file.filename}")
     
-    # Create unique filename
-    file_path = os.path.join(UPLOAD_DIR, file.filename)
+    try:
+        # Create unique filename with timestamp to prevent overwrites
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        safe_filename = f"{timestamp}_{file.filename}"
+        file_path = os.path.join(UPLOAD_DIR, safe_filename)
+        
+        # Save file to disk
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        # Create document record with full details
+        document = Document(
+            name=file.filename,  # Original filename
+            size=os.path.getsize(file_path),
+            content_type=file.content_type or "application/octet-stream",
+            path=file_path,
+            created_at=datetime.utcnow(),  # Explicit timestamp
+            owner_id=None,  # Add user ID logic later
+            last_modified_by=None
+        )
+        
+        # Commit to database
+        session.add(document)
+        session.commit()
+        session.refresh(document)
+        
+        logger.info(f"Document saved successfully: {document.name}")
+        
+        # Return document details
+        return {
+            "id": document.id,
+            "name": document.name,
+            "size": document.size,
+            "content_type": document.content_type,
+            "created_at": document.created_at.isoformat(),
+            "path": document.path
+        }
     
-    # Save file to disk
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-    
-    # Create document record
-    document = Document(
-        name=file.filename,
-        size=os.path.getsize(file_path),
-        content_type=file.content_type or "application/octet-stream",
-        path=file_path,
-        owner_id=None,  # Add user ID logic later
-        last_modified_by=None
-    )
-    
-    session.add(document)
-    session.commit()
-    session.refresh(document)
-    
-    logger.info(f"Document saved: {document.to_dict()}")
-    return document.to_dict()
+    except Exception as e:
+        logger.error(f"Upload failed: {str(e)}")
+        session.rollback()
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
 
 @router.get("")
 async def list_documents(
     session: Session = Depends(get_session)
 ):
-    documents = session.query(Document).all()
+    try:
+        # Fetch all documents, most recent first
+        documents = session.query(Document).order_by(Document.created_at.desc()).all()
+        
+        # Log documents for debugging
+        logger.info(f"Fetched {len(documents)} documents")
+        
+        # Convert to list of dictionaries
+        return [
+            {
+                "id": doc.id,
+                "name": doc.name,
+                "size": doc.size,
+                "content_type": doc.content_type,
+                "created_at": doc.created_at.isoformat(),
+                "owner_id": doc.owner_id,
+                "last_modified_by": doc.last_modified_by
+            } for doc in documents
+        ]
     
-    # Log documents for debugging
-    logger.info(f"Fetched {len(documents)} documents")
-    for doc in documents:
-        logger.info(f"Document: {doc.to_dict()}")
-    
-    return [doc.to_dict() for doc in documents]
+    except Exception as e:
+        logger.error(f"Failed to fetch documents: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch documents: {str(e)}")

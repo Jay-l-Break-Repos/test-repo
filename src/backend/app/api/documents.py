@@ -6,8 +6,8 @@ from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime
 
-from .models import Document
-from .database import get_session, init_db
+from app.models import Document
+from app.database import get_session, init_db
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

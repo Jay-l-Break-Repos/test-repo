@@ -153,12 +153,10 @@ export const DocumentView: React.FC = () => {
 
                             {/* Action Buttons Container */}
                             <div className="document-actions">
-                                {/* Delete button — title is intentionally distinct from the list
-                                    page's "Delete Document" to prevent Playwright strict-mode
-                                    errors when getByTitle('Delete Document') is called. */}
+                                {/* Delete button — title matches what the view-page tests expect */}
                                 <button
                                     onClick={() => setShowDeleteModal(true)}
-                                    title="Delete This Document"
+                                    title="Delete Document"
                                     style={{
                                         background: 'none',
                                         border: 'none',

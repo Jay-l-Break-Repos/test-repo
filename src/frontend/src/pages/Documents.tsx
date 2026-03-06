@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Eye, Plus } from 'lucide-react';
-import { getDocuments } from '../services/document.api';
-import { showError } from '../utils/toast';
+import { FileText, Eye, Plus, Trash2 } from 'lucide-react';
+import { getDocuments, deleteDocument } from '../services/document.api';
+import { showError, showSuccess } from '../utils/toast';
+import { DeleteConfirmationModal } from '../components/DeleteConfirmationModal';
 
 interface Document {
     id: number;
@@ -18,6 +19,8 @@ export const Documents = () => {
     const navigate = useNavigate();
     const [documents, setDocuments] = useState<Document[]>([]);
     const [loading, setLoading] = useState(true);
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [documentToDelete, setDocumentToDelete] = useState<{ id: number; name: string } | null>(null);
 
     const fetchDocuments = async () => {
         setLoading(true);
@@ -32,6 +35,31 @@ export const Documents = () => {
         }
     };
 
+    const handleDeleteClick = (id: number, name: string) => {
+        setDocumentToDelete({ id, name });
+        setDeleteModalOpen(true);
+    };
+
+    const handleDeleteConfirmed = async () => {
+        if (!documentToDelete) return;
+
+        try {
+            const result = await deleteDocument(documentToDelete.id);
+            showSuccess(result.message || 'Document deleted successfully');
+            fetchDocuments();
+        } catch (error) {
+            console.error('Failed to delete document:', error);
+            showError('Failed to delete document');
+        } finally {
+            setDeleteModalOpen(false);
+            setDocumentToDelete(null);
+        }
+    };
+
+    const handleCloseDeleteModal = () => {
+        setDeleteModalOpen(false);
+        setDocumentToDelete(null);
+    };
 
     useEffect(() => {
         fetchDocuments();
@@ -45,7 +73,6 @@ export const Documents = () => {
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     };
 
-
     const getFileIcon = (contentType: string, name: string) => {
         const nameLower = name.toLowerCase();
 
@@ -57,7 +84,6 @@ export const Documents = () => {
         // Default
         return <FileText size={20} className="text-gray-500" />;
     };
-
 
     return (
         <div className="p-6 max-w-[1600px] mx-auto bg-gray-50/50 min-h-screen">
@@ -80,8 +106,6 @@ export const Documents = () => {
 
             {/* Main Content Card */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-
-
                 {/* Table */}
                 <div className="overflow-x-auto">
                     {loading ? (
@@ -134,16 +158,28 @@ export const Documents = () => {
                                             </td>
                                             <td className="py-4 px-4 text-gray-500 text-sm font-mono text-right">{formatSize(doc.size)}</td>
                                             <td className="py-4 px-4 pr-6 text-right">
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        navigate(`/documents/${doc.id}`);
-                                                    }}
-                                                    className="p-2 hover:bg-indigo-50 text-gray-400 hover:text-indigo-600 rounded-lg transition-colors"
-                                                    title="View"
-                                                >
-                                                    <Eye size={18} />
-                                                </button>
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            navigate(`/documents/${doc.id}`);
+                                                        }}
+                                                        className="p-2 hover:bg-indigo-50 text-gray-400 hover:text-indigo-600 rounded-lg transition-colors"
+                                                        title="View"
+                                                    >
+                                                        <Eye size={18} />
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleDeleteClick(doc.id, doc.name);
+                                                        }}
+                                                        className="p-2 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded-lg transition-colors"
+                                                        title="Delete"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))
@@ -153,6 +189,17 @@ export const Documents = () => {
                     )}
                 </div>
             </div>
+
+            {/* Delete Confirmation Modal */}
+            {deleteModalOpen && documentToDelete && (
+                <DeleteConfirmationModal
+                    isOpen={deleteModalOpen}
+                    onClose={handleCloseDeleteModal}
+                    documentName={documentToDelete.name}
+                    documentId={documentToDelete.id}
+                    onDeleted={handleDeleteConfirmed}
+                />
+            )}
         </div>
     );
 };

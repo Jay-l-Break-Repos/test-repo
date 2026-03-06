@@ -104,7 +104,9 @@ async def delete_document(document_id: int, session: Session = Depends(get_sessi
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
     
-    # Delete the file from disk first
+    document_name = document.name
+
+    # Delete the file from disk first (if it exists)
     if os.path.exists(document.path):
         os.remove(document.path)
     
@@ -112,8 +114,8 @@ async def delete_document(document_id: int, session: Session = Depends(get_sessi
     session.delete(document)
     session.commit()
     
-    # Return success response - empty body with 200 status
-    return None
+    # Return success response with 200 status
+    return {"success": True, "message": f"'{document_name}' has been permanently deleted."}
 
 @router.delete("/{document_id}")
 async def delete_document(document_id: int, session: Session = Depends(get_session)):
@@ -121,7 +123,9 @@ async def delete_document(document_id: int, session: Session = Depends(get_sessi
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
     
-    # Delete the file from disk first
+    document_name = document.name
+
+    # Delete the file from disk first (if it exists)
     if os.path.exists(document.path):
         os.remove(document.path)
     
@@ -129,5 +133,5 @@ async def delete_document(document_id: int, session: Session = Depends(get_sessi
     session.delete(document)
     session.commit()
     
-    # Return success response - empty body with 200 status
-    return None
+    # Return success response with 200 status
+    return {"success": True, "message": f"'{document_name}' has been permanently deleted."}

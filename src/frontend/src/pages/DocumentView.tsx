@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, FileText } from 'lucide-react';
-import { type ApiDocument, getDocument } from '../services/document.api';
+import { ArrowLeft, FileText, Trash2 } from 'lucide-react';
+import { type ApiDocument, getDocument, deleteDocument } from '../services/document.api';
 import axios from 'axios';
-import { showError } from '../utils/toast';
-
+import { showError, showSuccess } from '../utils/toast';
+import { DeleteConfirmationModal } from '../components/DeleteConfirmationModal';
 
 import './DocumentView.css';
 
@@ -14,6 +14,7 @@ export const DocumentView: React.FC = () => {
     const [document, setDocument] = useState<ApiDocument | null>(null);
     const [textContent, setTextContent] = useState("");
     const [loading, setLoading] = useState(true);
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
 
     useEffect(() => {
@@ -136,7 +137,13 @@ export const DocumentView: React.FC = () => {
 
                         {/* Action Buttons Container */}
                         <div className="document-actions">
-
+                            <button
+                                onClick={() => setDeleteModalOpen(true)}
+                                className="p-2 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded-lg transition-colors"
+                                title="Delete Document"
+                            >
+                                <Trash2 size={18} />
+                            </button>
                         </div>
                     </div>
 
@@ -146,6 +153,27 @@ export const DocumentView: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Delete Confirmation Modal */}
+            {document && (
+                <DeleteConfirmationModal
+                    isOpen={deleteModalOpen}
+                    onClose={() => setDeleteModalOpen(false)}
+                    documentName={document.name}
+                    documentId={document.id}
+                    onDeleted={async () => {
+                        try {
+                            const result = await deleteDocument(document.id);
+                            showSuccess(result.message || 'Document deleted successfully');
+                            navigate('/documents');
+                        } catch (error) {
+                            console.error('Failed to delete document:', error);
+                            showError('Failed to delete document');
+                            setDeleteModalOpen(false);
+                        }
+                    }}
+                />
+            )}
         </div>
     );
 };

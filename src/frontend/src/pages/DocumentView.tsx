@@ -163,8 +163,8 @@ export const DocumentView: React.FC = () => {
                     documentId={document.id}
                     onDeleted={async () => {
                         try {
-                            const result = await deleteDocument(document.id);
-                            showSuccess(result.message || 'Document deleted successfully');
+                            await deleteDocument(document.id);
+                            showSuccess('Document deleted successfully');
                             navigate('/documents');
                         } catch (error) {
                             console.error('Failed to delete document:', error);

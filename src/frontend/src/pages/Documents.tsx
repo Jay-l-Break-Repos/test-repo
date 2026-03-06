@@ -44,8 +44,8 @@ export const Documents = () => {
         if (!documentToDelete) return;
 
         try {
-            const result = await deleteDocument(documentToDelete.id);
-            showSuccess(result.message || 'Document deleted successfully');
+            await deleteDocument(documentToDelete.id);
+            showSuccess('Document deleted successfully');
             fetchDocuments();
         } catch (error) {
             console.error('Failed to delete document:', error);

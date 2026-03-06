@@ -270,10 +270,7 @@ test.describe('Public Environment E2E', () => {
             // Modal closes, document removed, success toast shown
             await expect(page.getByRole('heading', { name: /Delete Document/i })).not.toBeVisible();
             await expect(page.getByText(fileName)).not.toBeVisible();
-            // react-hot-toast renders each toast message with role="status" aria-live="polite"
-            await expect(
-                page.getByRole('status').filter({ hasText: /permanently deleted/i })
-            ).toBeVisible({ timeout: 8000 });
+            await expect(page.getByText('Document deleted successfully')).toBeVisible({ timeout: 8000 });
         });
     });
 

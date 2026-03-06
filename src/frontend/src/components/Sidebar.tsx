@@ -9,10 +9,10 @@ export const Sidebar: React.FC = () => {
   };
 
   return (
-    <aside className="sidebar w-64 bg-gray-900 text-white">
+    <aside className="sidebar w-64 bg-gray-900 text-white min-h-screen">
       <div className="p-4">
         <h2 className="text-xl font-bold mb-6">DocuServe</h2>
-        <nav>
+        <nav role="navigation">
           <ul className="space-y-2">
             <li>
               <Link

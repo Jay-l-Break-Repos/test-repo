@@ -153,7 +153,9 @@ export const DocumentView: React.FC = () => {
 
                             {/* Action Buttons Container */}
                             <div className="document-actions">
-                                {/* Delete button — distinct title to avoid ambiguity with list page */}
+                                {/* Delete button — title is intentionally distinct from the list
+                                    page's "Delete Document" to prevent Playwright strict-mode
+                                    errors when getByTitle('Delete Document') is called. */}
                                 <button
                                     onClick={() => setShowDeleteModal(true)}
                                     title="Delete This Document"

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Eye, Plus } from 'lucide-react';
-import { getDocuments } from '../services/document.api';
-import { showError } from '../utils/toast';
+import { FileText, Eye, Plus, Trash2 } from 'lucide-react';
+import { getDocuments, deleteDocument } from '../services/document.api';
+import { showError, showSuccess } from '../utils/toast';
 
 interface Document {
     id: number;
@@ -18,6 +18,10 @@ export const Documents = () => {
     const navigate = useNavigate();
     const [documents, setDocuments] = useState<Document[]>([]);
     const [loading, setLoading] = useState(true);
+    const [deleteConfirmation, setDeleteConfirmation] = useState<{
+        show: boolean;
+        document: Document | null;
+    }>({ show: false, document: null });
 
     const fetchDocuments = async () => {
         setLoading(true);
@@ -32,10 +36,27 @@ export const Documents = () => {
         }
     };
 
-
     useEffect(() => {
         fetchDocuments();
     }, []);
+
+    const handleDeleteDocument = async () => {
+        if (!deleteConfirmation.document) return;
+
+        try {
+            await deleteDocument(deleteConfirmation.document.id);
+            showSuccess('Document deleted successfully');
+            
+            // Remove the deleted document from the list
+            setDocuments(docs => docs.filter(doc => doc.id !== deleteConfirmation.document?.id));
+            
+            // Close the confirmation dialog
+            setDeleteConfirmation({ show: false, document: null });
+        } catch (error) {
+            console.error('Failed to delete document:', error);
+            showError('Failed to delete document');
+        }
+    };
 
     const formatSize = (bytes: number) => {
         if (bytes === 0) return '0 B';
@@ -44,7 +65,6 @@ export const Documents = () => {
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     };
-
 
     const getFileIcon = (contentType: string, name: string) => {
         const nameLower = name.toLowerCase();
@@ -58,9 +78,35 @@ export const Documents = () => {
         return <FileText size={20} className="text-gray-500" />;
     };
 
-
     return (
         <div className="p-6 max-w-[1600px] mx-auto bg-gray-50/50 min-h-screen">
+            {/* Delete Confirmation Dialog */}
+            {deleteConfirmation.show && deleteConfirmation.document && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 max-w-md w-full">
+                        <h2 className="text-xl font-bold mb-4">Delete Document</h2>
+                        <p className="mb-6">
+                            Are you sure you want to delete the document{' '}
+                            <span className="font-bold">"{deleteConfirmation.document.name}"</span>?
+                        </p>
+                        <div className="flex justify-end gap-4">
+                            <button
+                                onClick={() => setDeleteConfirmation({ show: false, document: null })}
+                                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleDeleteDocument}
+                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                 <div>
@@ -80,8 +126,6 @@ export const Documents = () => {
 
             {/* Main Content Card */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-
-
                 {/* Table */}
                 <div className="overflow-x-auto">
                     {loading ? (
@@ -111,10 +155,12 @@ export const Documents = () => {
                                     documents.map((doc) => (
                                         <tr
                                             key={doc.id}
-                                            onClick={() => navigate(`/documents/${doc.id}`)}
-                                            className="group hover:bg-gray-50/50 cursor-pointer transition-colors"
+                                            className="group hover:bg-gray-50/50 transition-colors"
                                         >
-                                            <td className="py-4 px-4 pl-6">
+                                            <td 
+                                                className="py-4 px-4 pl-6 cursor-pointer"
+                                                onClick={() => navigate(`/documents/${doc.id}`)}
+                                            >
                                                 <div className="flex items-center gap-3">
                                                     <div className="p-2 bg-gray-50 rounded-lg border border-gray-100 group-hover:bg-white group-hover:border-gray-200 transition-colors">
                                                         {getFileIcon(doc.content_type, doc.name)}
@@ -133,16 +179,23 @@ export const Documents = () => {
                                                 {doc.last_modified_by || 'Unknown'}
                                             </td>
                                             <td className="py-4 px-4 text-gray-500 text-sm font-mono text-right">{formatSize(doc.size)}</td>
-                                            <td className="py-4 px-4 pr-6 text-right">
+                                            <td className="py-4 px-4 pr-6 text-right flex items-center justify-end gap-2">
                                                 <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        navigate(`/documents/${doc.id}`);
-                                                    }}
+                                                    onClick={() => navigate(`/documents/${doc.id}`)}
                                                     className="p-2 hover:bg-indigo-50 text-gray-400 hover:text-indigo-600 rounded-lg transition-colors"
                                                     title="View"
                                                 >
                                                     <Eye size={18} />
+                                                </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setDeleteConfirmation({ show: true, document: doc });
+                                                    }}
+                                                    className="p-2 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded-lg transition-colors"
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 size={18} />
                                                 </button>
                                             </td>
                                         </tr>

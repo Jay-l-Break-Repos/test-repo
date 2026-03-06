@@ -151,3 +151,23 @@
 .loading-content {
     text-align: center;
 }
+
+.delete-document-button {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #dc2626;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+.delete-document-button:hover {
+    background: #fee2e2;
+    border-color: #fca5a5;
+}

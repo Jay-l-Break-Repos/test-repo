@@ -134,16 +134,29 @@ export const Documents = () => {
                                             </td>
                                             <td className="py-4 px-4 text-gray-500 text-sm font-mono text-right">{formatSize(doc.size)}</td>
                                             <td className="py-4 px-4 pr-6 text-right">
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        navigate(`/documents/${doc.id}`);
-                                                    }}
-                                                    className="p-2 hover:bg-indigo-50 text-gray-400 hover:text-indigo-600 rounded-lg transition-colors"
-                                                    title="View"
-                                                >
-                                                    <Eye size={18} />
-                                                </button>
+                                                <div className="flex justify-end gap-1">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            navigate(`/documents/${doc.id}`);
+                                                        }}
+                                                        className="p-2 hover:bg-indigo-50 text-gray-400 hover:text-indigo-600 rounded-lg transition-colors"
+                                                        title="View"
+                                                    >
+                                                        <Eye size={18} />
+                                                    </button>
+                                                    <button
+                                                        title="Delete"
+                                                        className="p-2 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded-lg transition-colors"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            // TODO: Implement delete functionality
+                                                            console.log('Delete document:', doc.id);
+                                                        }}
+                                                    >
+                                                        🗑️
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))

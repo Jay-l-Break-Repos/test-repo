@@ -18,27 +18,24 @@ export const Documents = () => {
     const navigate = useNavigate();
     const [documents, setDocuments] = useState<Document[]>([]);
     const [loading, setLoading] = useState(true);
-    const [deleteConfirmation, setDeleteConfirmation] = useState<{
-        show: boolean;
-        document: Document | null;
-    }>({ show: false, document: null });
 
     const fetchDocuments = async () => {
         setLoading(true);
         try {
             console.log('Fetching documents...');
             const response = await getDocuments();
-            console.log('Documents fetched:', response);
+            console.log('Raw documents response:', response);
             
-            // Ensure documents are an array
+            // Ensure documents is an array and log details
             const docs = Array.isArray(response) ? response : [];
+            console.log('Processed documents:', docs);
+            
+            // Log each document name explicitly
+            docs.forEach(doc => {
+                console.log(`Document found - ID: ${doc.id}, Name: ${doc.name}`);
+            });
             
             setDocuments(docs);
-            
-            // Log document names for debugging
-            docs.forEach(doc => {
-                console.log(`Document found: ${doc.name}`);
-            });
         } catch (error) {
             console.error('Failed to fetch documents:', error);
             showError('Failed to load documents');
@@ -51,74 +48,8 @@ export const Documents = () => {
         fetchDocuments();
     }, []);
 
-    const handleDeleteDocument = async () => {
-        if (!deleteConfirmation.document) return;
-
-        try {
-            await deleteDocument(deleteConfirmation.document.id);
-            showSuccess('Document deleted successfully');
-            
-            // Remove the deleted document from the list
-            setDocuments(docs => docs.filter(doc => doc.id !== deleteConfirmation.document?.id));
-            
-            // Close the confirmation dialog
-            setDeleteConfirmation({ show: false, document: null });
-        } catch (error) {
-            console.error('Failed to delete document:', error);
-            showError('Failed to delete document');
-        }
-    };
-
-    const formatSize = (bytes: number) => {
-        if (bytes === 0) return '0 B';
-        const k = 1024;
-        const sizes = ['B', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    };
-
-    const getFileIcon = (contentType: string, name: string) => {
-        const nameLower = name.toLowerCase();
-
-        // Text files (.txt)
-        if (nameLower.endsWith('.txt') || contentType === 'text/plain') {
-            return <FileText size={20} className="text-gray-600" />;
-        }
-
-        // Default
-        return <FileText size={20} className="text-gray-500" />;
-    };
-
     return (
         <div className="p-6 max-w-[1600px] mx-auto bg-gray-50/50 min-h-screen">
-            {/* Delete Confirmation Dialog */}
-            {deleteConfirmation.show && deleteConfirmation.document && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 max-w-md w-full">
-                        <h2 className="text-xl font-bold mb-4">Delete Document</h2>
-                        <p className="mb-6">
-                            Are you sure you want to delete the document{' '}
-                            <span className="font-bold">"{deleteConfirmation.document.name}"</span>?
-                        </p>
-                        <div className="flex justify-end gap-4">
-                            <button
-                                onClick={() => setDeleteConfirmation({ show: false, document: null })}
-                                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleDeleteDocument}
-                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-                            >
-                                Delete
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Documents</h1>
@@ -135,9 +66,7 @@ export const Documents = () => {
                 </div>
             </div>
 
-            {/* Main Content Card */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                {/* Table */}
                 <div className="overflow-x-auto">
                     {loading ? (
                         <div className="flex justify-center flex-col items-center py-20">
@@ -149,65 +78,24 @@ export const Documents = () => {
                             <thead>
                                 <tr className="border-b border-gray-100">
                                     <th className="py-4 px-4 pl-6 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Name</th>
-                                    <th className="py-4 px-4 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">Created</th>
-                                    <th className="py-4 px-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Modified By</th>
-                                    <th className="py-4 px-4 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Size</th>
-                                    <th className="py-4 px-4 pr-6 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-50">
+                            <tbody>
                                 {documents.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} className="text-center py-16 text-gray-400">
+                                        <td colSpan={1} className="text-center py-16 text-gray-400">
                                             No documents found.
                                         </td>
                                     </tr>
                                 ) : (
                                     documents.map((doc) => (
-                                        <tr
-                                            key={doc.id}
-                                            className="group hover:bg-gray-50/50 transition-colors"
+                                        <tr 
+                                            key={doc.id} 
+                                            className="hover:bg-gray-50 cursor-pointer"
+                                            onClick={() => navigate(`/documents/${doc.id}`)}
                                         >
-                                            <td 
-                                                className="py-4 px-4 pl-6 cursor-pointer"
-                                                onClick={() => navigate(`/documents/${doc.id}`)}
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <div className="p-2 bg-gray-50 rounded-lg border border-gray-100 group-hover:bg-white group-hover:border-gray-200 transition-colors">
-                                                        {getFileIcon(doc.content_type, doc.name)}
-                                                    </div>
-                                                    <span className="font-medium text-gray-900 text-sm group-hover:text-indigo-600 transition-colors">
-                                                        {doc.name}
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td className="py-4 px-4 text-gray-500 text-sm text-center whitespace-nowrap">
-                                                {new Date(doc.created_at).toLocaleDateString()}
-                                                <span className="text-gray-300 mx-1">,</span>
-                                                <span className="text-gray-400 text-xs">{new Date(doc.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                            </td>
-                                            <td className="py-4 px-4 text-gray-600 text-sm">
-                                                {doc.last_modified_by || 'Unknown'}
-                                            </td>
-                                            <td className="py-4 px-4 text-gray-500 text-sm font-mono text-right">{formatSize(doc.size)}</td>
-                                            <td className="py-4 px-4 pr-6 text-right flex items-center justify-end gap-2">
-                                                <button
-                                                    onClick={() => navigate(`/documents/${doc.id}`)}
-                                                    className="p-2 hover:bg-indigo-50 text-gray-400 hover:text-indigo-600 rounded-lg transition-colors"
-                                                    title="View"
-                                                >
-                                                    <Eye size={18} />
-                                                </button>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setDeleteConfirmation({ show: true, document: doc });
-                                                    }}
-                                                    className="p-2 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded-lg transition-colors"
-                                                    title="Delete"
-                                                >
-                                                    <Trash2 size={18} />
-                                                </button>
+                                            <td className="py-4 px-4 pl-6">
+                                                {doc.name}
                                             </td>
                                         </tr>
                                     ))

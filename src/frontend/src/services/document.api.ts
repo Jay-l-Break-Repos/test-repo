@@ -7,17 +7,8 @@ export interface ApiDocument {
     content_type: string;
     path: string;
     created_at: string;
-    owner_id: number;
-    last_modified_by: string;
-    versions?: {
-        id: number;
-        version_number: number;
-        path: string;
-        created_at: string;
-        size?: number;
-        document_id: number;
-        last_modified_by: string;
-    }[];
+    owner_id: number | null;
+    last_modified_by: string | null;
 }
 
 export const uploadDocument = async (file: File, onProgress?: (percent: number) => void, userId?: string): Promise<ApiDocument> => {
@@ -31,33 +22,35 @@ export const uploadDocument = async (file: File, onProgress?: (percent: number) 
 
     console.log('Uploading document:', file.name);
 
-    const response = await axios.post<ApiDocument>('/api/documents/upload', formData, {
-        headers,
-        onUploadProgress: (progressEvent) => {
-            if (progressEvent.total && onProgress) {
-                const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-                onProgress(percentCompleted);
-            }
-        },
-    });
+    try {
+        const response = await axios.post<ApiDocument>('/api/documents/upload', formData, {
+            headers,
+            onUploadProgress: (progressEvent) => {
+                if (progressEvent.total && onProgress) {
+                    const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                    onProgress(percentCompleted);
+                }
+            },
+        });
 
-    console.log('Document uploaded:', response.data);
-    return response.data;
+        console.log('Document uploaded successfully:', response.data);
+        return response.data;
+    } catch (error) {
+        console.error('Upload failed:', error);
+        throw error;
+    }
 };
 
-export const getDocuments = async (sort_by: string = 'id', order: 'asc' | 'desc' = 'desc'): Promise<ApiDocument[]> => {
-    const params: any = { sort_by, order };
-    
-    console.log('Fetching documents...');
-    
+export const getDocuments = async (): Promise<ApiDocument[]> => {
     try {
-        const response = await axios.get<ApiDocument[]>('/api/documents', { params });
+        console.log('Fetching documents from API...');
+        const response = await axios.get<ApiDocument[]>('/api/documents');
         
         console.log('Documents fetched:', response.data);
         
-        // Log each document name
+        // Log each document name for debugging
         response.data.forEach(doc => {
-            console.log(`Document: ${doc.name}`);
+            console.log(`Document found: ${doc.name}`);
         });
         
         return response.data;

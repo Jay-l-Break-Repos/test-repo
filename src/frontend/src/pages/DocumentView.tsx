@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, FileText } from 'lucide-react';
 import { type ApiDocument, getDocument } from '../services/document.api';
 import axios from 'axios';
-import { showError } from '../utils/toast';
+import { showError, showSuccess } from '../utils/toast';
 import { ConfirmationModal } from '../components/ConfirmationModal';
 
 
@@ -103,6 +103,8 @@ export const DocumentView: React.FC = () => {
             if (response.ok) {
                 // Navigate back to documents list
                 navigate('/documents');
+                // Show success message
+                showSuccess('Document deleted successfully');
             } else {
                 throw new Error('Failed to delete document');
             }

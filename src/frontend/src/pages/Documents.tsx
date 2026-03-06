@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileText, Eye, Plus } from 'lucide-react';
 import { getDocuments } from '../services/document.api';
-import { showError } from '../utils/toast';
+import { showError, showSuccess } from '../utils/toast';
 import { ConfirmationModal } from '../components/ConfirmationModal';
 
 interface Document {
@@ -70,6 +70,8 @@ export const Documents = () => {
             if (response.ok) {
                 // Refresh documents list
                 fetchDocuments();
+                // Show success message
+                showSuccess('Document deleted successfully');
             } else {
                 throw new Error('Failed to delete document');
             }

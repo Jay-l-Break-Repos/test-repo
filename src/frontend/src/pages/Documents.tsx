@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileText, Eye, Plus } from 'lucide-react';
-import { getDocuments } from '../services/document.api';
+import { getDocuments, deleteDocument } from '../services/document.api';
 import { showError } from '../utils/toast';
 
 interface Document {
@@ -62,10 +62,7 @@ export const Documents = () => {
 
     const handleDelete = async (id: number) => {
         try {
-            // TODO: Implement actual API call to delete document
-            console.log('Deleting document:', id);
-            
-            // For now, simulate successful deletion
+            await deleteDocument(id);
             setDeleteSuccess(true);
             setDeleteDoc(null);
             

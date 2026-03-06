@@ -112,5 +112,5 @@ async def delete_document(document_id: int, session: Session = Depends(get_sessi
     session.delete(document)
     session.commit()
     
-    # Return success response
-    return {"message": "Document deleted successfully", "id": document_id}
+    # Return 200 OK status only (no response body)
+    return Response(status_code=200)

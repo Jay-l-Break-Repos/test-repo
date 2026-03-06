@@ -26,8 +26,19 @@ export const Documents = () => {
     const fetchDocuments = async () => {
         setLoading(true);
         try {
+            console.log('Fetching documents...');
             const response = await getDocuments();
-            setDocuments(response);
+            console.log('Documents fetched:', response);
+            
+            // Ensure documents are an array
+            const docs = Array.isArray(response) ? response : [];
+            
+            setDocuments(docs);
+            
+            // Log document names for debugging
+            docs.forEach(doc => {
+                console.log(`Document found: ${doc.name}`);
+            });
         } catch (error) {
             console.error('Failed to fetch documents:', error);
             showError('Failed to load documents');

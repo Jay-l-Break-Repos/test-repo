@@ -29,6 +29,8 @@ export const uploadDocument = async (file: File, onProgress?: (percent: number) 
         headers['X-User-ID'] = userId;
     }
 
+    console.log('Uploading document:', file.name);
+
     const response = await axios.post<ApiDocument>('/api/documents/upload', formData, {
         headers,
         onUploadProgress: (progressEvent) => {
@@ -38,13 +40,31 @@ export const uploadDocument = async (file: File, onProgress?: (percent: number) 
             }
         },
     });
+
+    console.log('Document uploaded:', response.data);
     return response.data;
 };
 
 export const getDocuments = async (sort_by: string = 'id', order: 'asc' | 'desc' = 'desc'): Promise<ApiDocument[]> => {
     const params: any = { sort_by, order };
-    const response = await axios.get<ApiDocument[]>('/api/documents', { params });
-    return response.data;
+    
+    console.log('Fetching documents...');
+    
+    try {
+        const response = await axios.get<ApiDocument[]>('/api/documents', { params });
+        
+        console.log('Documents fetched:', response.data);
+        
+        // Log each document name
+        response.data.forEach(doc => {
+            console.log(`Document: ${doc.name}`);
+        });
+        
+        return response.data;
+    } catch (error) {
+        console.error('Failed to fetch documents:', error);
+        throw error;
+    }
 };
 
 export const getDocument = async (id: number): Promise<ApiDocument> => {

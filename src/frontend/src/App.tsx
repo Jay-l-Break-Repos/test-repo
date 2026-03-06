@@ -1,5 +1,3 @@
-
-
 import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import "./App.css";
@@ -16,6 +14,9 @@ function AppContent() {
   const location = useLocation();
   const isDocumentView = location.pathname.startsWith('/documents/') && location.pathname !== '/documents';
   const isHome = location.pathname === '/';
+
+  // DIAGNOSTIC: Log current route
+  console.log('Current Route:', location.pathname);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -41,10 +42,31 @@ function AppContent() {
         maxWidth: (isDocumentView || isHome) ? '100%' : '1200px'
       }}>
         <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/documents" element={<Documents />} />
-          <Route path="/documents/:id" element={<DocumentView />} />
-          <Route path="/upload" element={<Upload />} />
+          {/* DIAGNOSTIC: Explicit route logging */}
+          <Route 
+            path="/" 
+            element={<Home />} 
+            handle={() => console.log('Home route matched')} 
+          />
+          <Route 
+            path="/documents" 
+            element={
+              <>
+                {console.log('Documents route matched')}
+                <Documents />
+              </>
+            } 
+          />
+          <Route 
+            path="/documents/:id" 
+            element={<DocumentView />} 
+            handle={() => console.log('Document View route matched')} 
+          />
+          <Route 
+            path="/upload" 
+            element={<Upload />} 
+            handle={() => console.log('Upload route matched')} 
+          />
         </Routes>
       </main>
     </div>

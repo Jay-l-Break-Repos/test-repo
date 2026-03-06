@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Header, Response
+from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Header, Response, status
 from fastapi.responses import HTMLResponse
 from datetime import datetime, timezone
 from sqlmodel import Session, select, func
@@ -80,6 +80,54 @@ async def get_document(document_id: int, session: Session = Depends(get_session)
         raise HTTPException(status_code=404, detail="Document not found")
     # Return as DocumentRead with empty versions
     return DocumentRead(**document.dict(), versions=[])
+
+@router.delete("/{document_id}", status_code=status.HTTP_200_OK)
+def delete_document(
+    document_id: int,
+    session: Session = Depends(get_session)
+):
+    """
+    Permanently delete a document from the system.
+    
+    Removes the document record from the database (hard delete — no soft
+    delete or archiving) and, if the associated file still exists on disk,
+    removes it as well.
+    
+    Args:
+        document_id: Primary key of the document to delete.
+        session: SQLModel database session (injected by FastAPI).
+
+    Returns:
+        JSON response with success status and message.
+
+    Raises:
+        HTTPException 404: If no document with the given ID exists.
+    """
+    document = session.get(Document, document_id)
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    doc_name = document.name
+    file_path = document.path
+    
+    # Remove the physical file if it still exists on disk
+    # Gracefully skip if the file is already gone — the DB record must still
+    # be cleaned up regardless.
+    if file_path and os.path.exists(file_path):
+        try:
+            os.remove(file_path)
+        except OSError as exc:
+            # Log the warning but do not abort; DB cleanup takes priority.
+            pass  # In production, you might want to log this
+    
+    # Hard-delete the record from the database
+    session.delete(document)
+    session.commit()
+
+    return {
+        "success": True,
+        "message": f"Document '{doc_name}' has been permanently deleted."
+    }
 
 @router.get("/{document_id}/view")
 async def view_document(

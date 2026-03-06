@@ -4,7 +4,7 @@ from fastapi.responses import HTMLResponse
 from datetime import datetime, timezone
 from sqlmodel import Session, select, func
 from app.core.database import get_session
-from app.models.document import Document, DocumentRead
+from app.models.document import Document, DocumentRead, DocumentDeleteResponse
 from app.services.storage import save_upload_file
 import os
 
@@ -85,7 +85,7 @@ async def get_document(document_id: int, session: Session = Depends(get_session)
         raise HTTPException(status_code=404, detail="Document not found")
     return DocumentRead(**document.dict(), versions=[])
 
-@router.delete("/{document_id}")
+@router.delete("/{document_id}", response_model=DocumentDeleteResponse)
 async def delete_document(
     document_id: int,
     session: Session = Depends(get_session)

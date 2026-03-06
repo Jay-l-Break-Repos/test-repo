@@ -22,4 +22,12 @@ class DocumentRead(DocumentBase):
     id: int
     versions: List[dict] = []
 
+
+class DocumentDeleteResponse(SQLModel):
+    """Response model returned by DELETE /api/documents/{id}."""
+
+    success: bool
+    message: str
+
+
 # Pagination response model removed

@@ -185,7 +185,7 @@ export const DocumentView: React.FC = () => {
                 onClose={() => setDeleteModal({ isOpen: false })}
                 onConfirm={handleDelete}
                 title="Delete Document"
-                message={`Are you sure you want to delete the document '${document.name}'? This action cannot be undone.`}
+                message={`Are you sure you want to delete the document "${document.name}"? This action cannot be undone.`}
                 confirmText="Delete"
                 cancelText="Cancel"
             />

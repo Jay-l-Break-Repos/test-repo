@@ -200,7 +200,7 @@ export const Documents = () => {
                 onClose={() => setDeleteModal({ ...deleteModal, isOpen: false })}
                 onConfirm={() => handleDelete(deleteModal.documentId!, deleteModal.documentName)}
                 title="Delete Document"
-                message={`Are you sure you want to delete the document '${deleteModal.documentName}'? This action cannot be undone.`}
+                message={`Are you sure you want to delete the document "${deleteModal.documentName}"? This action cannot be undone.`}
                 confirmText="Delete"
                 cancelText="Cancel"
             />

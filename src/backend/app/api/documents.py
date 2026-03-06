@@ -102,3 +102,60 @@ async def list_documents(
     except Exception as e:
         logger.error(f"Failed to fetch documents: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch documents: {str(e)}")
+
+@router.delete("/{document_id}")
+async def delete_document(
+    document_id: int,
+    session: Session = Depends(get_session)
+):
+    """
+    Delete a document by ID.
+    
+    Args:
+        document_id: The ID of the document to delete
+        session: Database session
+    
+    Returns:
+        200: Document successfully deleted
+        404: Document not found
+        500: Server error
+    """
+    try:
+        # Find the document by ID
+        document = session.query(Document).filter(Document.id == document_id).first()
+        
+        # Check if document exists
+        if not document:
+            logger.warning(f"Document not found with ID: {document_id}")
+            raise HTTPException(status_code=404, detail=f"Document with ID {document_id} not found")
+        
+        # Store file path for deletion
+        file_path = document.path
+        document_name = document.name
+        
+        # Delete the file from disk
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            logger.info(f"File deleted from disk: {file_path}")
+        else:
+            logger.warning(f"File not found on disk: {file_path}")
+        
+        # Delete the document record from database
+        session.delete(document)
+        session.commit()
+        
+        logger.info(f"Document deleted successfully: {document_name} (ID: {document_id})")
+        
+        return {
+            "message": f"Document '{document_name}' deleted successfully",
+            "id": document_id
+        }
+    
+    except HTTPException:
+        # Re-raise HTTP exceptions (404)
+        raise
+    
+    except Exception as e:
+        logger.error(f"Failed to delete document {document_id}: {str(e)}")
+        session.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to delete document: {str(e)}")

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileText, Eye, Plus } from 'lucide-react';
-import { getDocuments } from '../services/document.api';
-import { showError } from '../utils/toast';
+import { getDocuments, deleteDocument } from '../services/document.api';
+import { showSuccess, showError } from '../utils/toast';
 
 interface Document {
     id: number;
@@ -18,6 +18,8 @@ export const Documents = () => {
     const navigate = useNavigate();
     const [documents, setDocuments] = useState<Document[]>([]);
     const [loading, setLoading] = useState(true);
+    const [deleteDoc, setDeleteDoc] = useState<Document | null>(null);
+    const [deleteSuccess, setDeleteSuccess] = useState(false);
 
     const fetchDocuments = async () => {
         setLoading(true);
@@ -58,6 +60,25 @@ export const Documents = () => {
         return <FileText size={20} className="text-gray-500" />;
     };
 
+    const handleDelete = async (id: number) => {
+        try {
+            await deleteDocument(id);
+            setDeleteSuccess(true);
+            setDeleteDoc(null);
+            
+            // Refresh the documents list
+            fetchDocuments();
+            
+            // Hide success message after 3 seconds
+            setTimeout(() => {
+                setDeleteSuccess(false);
+            }, 3000);
+        } catch (error) {
+            console.error('Failed to delete document:', error);
+            showError('Failed to delete document');
+        }
+    };
+
 
     return (
         <div className="p-6 max-w-[1600px] mx-auto bg-gray-50/50 min-h-screen">
@@ -77,6 +98,13 @@ export const Documents = () => {
                     </button>
                 </div>
             </div>
+
+            {/* Success Message */}
+            {deleteSuccess && (
+                <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+                    Document deleted successfully
+                </div>
+            )}
 
             {/* Main Content Card */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -134,16 +162,29 @@ export const Documents = () => {
                                             </td>
                                             <td className="py-4 px-4 text-gray-500 text-sm font-mono text-right">{formatSize(doc.size)}</td>
                                             <td className="py-4 px-4 pr-6 text-right">
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        navigate(`/documents/${doc.id}`);
-                                                    }}
-                                                    className="p-2 hover:bg-indigo-50 text-gray-400 hover:text-indigo-600 rounded-lg transition-colors"
-                                                    title="View"
-                                                >
-                                                    <Eye size={18} />
-                                                </button>
+                                                <div className="flex justify-end gap-1">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            navigate(`/documents/${doc.id}`);
+                                                        }}
+                                                        className="p-2 hover:bg-indigo-50 text-gray-400 hover:text-indigo-600 rounded-lg transition-colors"
+                                                        title="View"
+                                                    >
+                                                        <Eye size={18} />
+                                                    </button>
+                                                    <button
+                                                        data-testid="delete-document"
+                                                        title="Delete"
+                                                        className="p-2 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded-lg transition-colors"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setDeleteDoc(doc);
+                                                        }}
+                                                    >
+                                                        🗑️
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))
@@ -153,6 +194,32 @@ export const Documents = () => {
                     )}
                 </div>
             </div>
+
+            {/* Delete Confirmation Modal */}
+            {deleteDoc && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white p-6 rounded-lg shadow-lg">
+                        <h3 className="text-lg font-bold mb-2">Delete Document</h3>
+                        <p className="mb-4" data-testid="delete-document-filename">Are you sure you want to delete "{deleteDoc.name}"?</p>
+                        <div className="flex gap-4">
+                            <button 
+                                data-testid="confirm-delete"
+                                onClick={() => handleDelete(deleteDoc.id)}
+                                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                            >
+                                Delete
+                            </button>
+                            <button 
+                                data-testid="cancel-delete"
+                                onClick={() => setDeleteDoc(null)}
+                                className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

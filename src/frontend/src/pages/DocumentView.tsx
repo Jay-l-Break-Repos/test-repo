@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, FileText } from 'lucide-react';
-import { type ApiDocument, getDocument } from '../services/document.api';
+import { type ApiDocument, getDocument, deleteDocument } from '../services/document.api';
 import axios from 'axios';
-import { showError } from '../utils/toast';
+import { showSuccess, showError } from '../utils/toast';
 
 
 import './DocumentView.css';
@@ -14,6 +14,8 @@ export const DocumentView: React.FC = () => {
     const [document, setDocument] = useState<ApiDocument | null>(null);
     const [textContent, setTextContent] = useState("");
     const [loading, setLoading] = useState(true);
+    const [deleteDoc, setDeleteDoc] = useState<{ name: string; id: number } | null>(null);
+    const [deleteSuccess, setDeleteSuccess] = useState(false);
 
 
     useEffect(() => {
@@ -55,6 +57,22 @@ export const DocumentView: React.FC = () => {
         };
         fetchContent();
     }, [document]);
+
+    const handleDelete = async (docId: number) => {
+        try {
+            await deleteDocument(docId);
+            setDeleteDoc(null);
+            setDeleteSuccess(true);
+            
+            // Show success message for 2 seconds before navigating
+            setTimeout(() => {
+                navigate('/documents');
+            }, 2000);
+        } catch (error) {
+            console.error('Delete failed:', error);
+            showError('Failed to delete document');
+        }
+    };
 
     if (loading || !document) {
         return (
@@ -136,7 +154,16 @@ export const DocumentView: React.FC = () => {
 
                         {/* Action Buttons Container */}
                         <div className="document-actions">
-
+                            <button
+                                data-testid="delete-document"
+                                title="Delete Document"
+                                className="delete-document-button"
+                                onClick={() => {
+                                    setDeleteDoc({ name: document.name, id: document.id });
+                                }}
+                            >
+                                🗑️
+                            </button>
                         </div>
                     </div>
 
@@ -146,6 +173,39 @@ export const DocumentView: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Delete Confirmation Modal */}
+            {deleteDoc && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white p-6 rounded-lg shadow-lg">
+                        <h3 className="text-lg font-bold mb-2">Delete Document</h3>
+                        <p className="mb-4" data-testid="delete-document-filename">Are you sure you want to delete "{deleteDoc.name}"?</p>
+                        <div className="flex gap-4">
+                            <button 
+                                data-testid="confirm-delete"
+                                onClick={() => handleDelete(deleteDoc.id)}
+                                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                            >
+                                Delete
+                            </button>
+                            <button 
+                                data-testid="cancel-delete"
+                                onClick={() => setDeleteDoc(null)}
+                                className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Success Message */}
+            {deleteSuccess && (
+                <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+                    Document deleted successfully
+                </div>
+            )}
         </div>
     );
 };

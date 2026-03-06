@@ -1,5 +1,4 @@
 import { X } from 'lucide-react';
-import { showSuccess } from '../utils/toast';
 
 interface DeleteConfirmationModalProps {
     isOpen: boolean;
@@ -16,11 +15,6 @@ export const DeleteConfirmationModal = ({
     onDeleted
 }: DeleteConfirmationModalProps) => {
     if (!isOpen) return null;
-
-    const handleDelete = () => {
-        onDeleted();
-        showSuccess('Document deleted successfully');
-    };
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -54,7 +48,7 @@ export const DeleteConfirmationModal = ({
                         Cancel
                     </button>
                     <button
-                        onClick={handleDelete}
+                        onClick={onDeleted}
                         className="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
                         data-testid="confirm-delete"
                     >

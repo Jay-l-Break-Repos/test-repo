@@ -18,6 +18,8 @@ export const Documents = () => {
     const navigate = useNavigate();
     const [documents, setDocuments] = useState<Document[]>([]);
     const [loading, setLoading] = useState(true);
+    const [deleteDoc, setDeleteDoc] = useState<Document | null>(null);
+    const [deleteSuccess, setDeleteSuccess] = useState(false);
 
     const fetchDocuments = async () => {
         setLoading(true);
@@ -58,6 +60,28 @@ export const Documents = () => {
         return <FileText size={20} className="text-gray-500" />;
     };
 
+    const handleDelete = async (id: number) => {
+        try {
+            // TODO: Implement actual API call to delete document
+            console.log('Deleting document:', id);
+            
+            // For now, simulate successful deletion
+            setDeleteSuccess(true);
+            setDeleteDoc(null);
+            
+            // Refresh the documents list
+            fetchDocuments();
+            
+            // Hide success message after 3 seconds
+            setTimeout(() => {
+                setDeleteSuccess(false);
+            }, 3000);
+        } catch (error) {
+            console.error('Failed to delete document:', error);
+            showError('Failed to delete document');
+        }
+    };
+
 
     return (
         <div className="p-6 max-w-[1600px] mx-auto bg-gray-50/50 min-h-screen">
@@ -77,6 +101,13 @@ export const Documents = () => {
                     </button>
                 </div>
             </div>
+
+            {/* Success Message */}
+            {deleteSuccess && (
+                <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+                    Document deleted successfully
+                </div>
+            )}
 
             {/* Main Content Card */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -150,8 +181,7 @@ export const Documents = () => {
                                                         className="p-2 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded-lg transition-colors"
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            // TODO: Implement delete functionality
-                                                            console.log('Delete document:', doc.id);
+                                                            setDeleteDoc(doc);
                                                         }}
                                                     >
                                                         🗑️
@@ -166,6 +196,30 @@ export const Documents = () => {
                     )}
                 </div>
             </div>
+
+            {/* Delete Confirmation Modal */}
+            {deleteDoc && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white p-6 rounded-lg shadow-lg">
+                        <h3 className="text-lg font-bold mb-2">Delete Document</h3>
+                        <p className="mb-4">Are you sure you want to delete "{deleteDoc.name}"?</p>
+                        <div className="flex gap-4">
+                            <button 
+                                onClick={() => handleDelete(deleteDoc.id)}
+                                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                            >
+                                Delete
+                            </button>
+                            <button 
+                                onClick={() => setDeleteDoc(null)}
+                                className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

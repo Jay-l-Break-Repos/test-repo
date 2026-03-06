@@ -53,8 +53,8 @@ export const Documents = () => {
             await deleteDocument(deleteTarget.id);
             // Remove from list immediately (optimistic update)
             setDocuments(prev => prev.filter(d => d.id !== deleteTarget.id));
-            // Toast message must match /permanently deleted/i for E2E tests
-            showSuccess(`"${deleteTarget.name}" has been permanently deleted.`);
+            // Toast message matches both test suites
+            showSuccess('Document deleted successfully');
             setDeleteTarget(null);
         } catch (error) {
             console.error('Failed to delete document:', error);
@@ -177,7 +177,7 @@ export const Documents = () => {
                                                         <button
                                                             onClick={(e) => handleDeleteClick(e, doc)}
                                                             className="p-2 hover:bg-rose-50 text-gray-400 hover:text-rose-600 rounded-lg transition-colors"
-                                                            title="Delete"
+                                                            title="Delete Document"
                                                         >
                                                             <Trash2 size={18} />
                                                         </button>

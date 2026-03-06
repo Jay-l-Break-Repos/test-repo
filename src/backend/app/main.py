@@ -1,31 +1,38 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.core.database import init_db
-from app.api import documents
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
 
-app = FastAPI(title="DMS API")
+from .api import documents
+from .database import init_db
 
-# CORS
-origins = [
-    "http://localhost:5173",
-    "http://localhost:3000",
-    "http://127.0.0.1:5173",
-]
+app = FastAPI()
 
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],  # Allow all origins
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-@app.on_event("startup")
-def on_startup():
-    init_db()
+# Initialize database
+init_db()
 
-@app.get("/")
-def read_root():
-    return {"message": "DocuServe API is running"}
-
+# Include routers
 app.include_router(documents.router, prefix="/api/documents", tags=["documents"])
+
+# Serve frontend static files
+@app.get("/")
+async def serve_frontend():
+    return FileResponse("frontend/index.html")
+
+# Serve static files
+app.mount("/", StaticFiles(directory="frontend"), name="static")
+
+# Optional: Health check endpoint
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy"}

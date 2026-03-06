@@ -1,88 +1,59 @@
-from typing import List, Optional
-from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Header, Response
-from fastapi.responses import HTMLResponse
-from datetime import datetime, timezone
-from sqlmodel import Session, select, func
-from app.core.database import get_session
-from app.models.document import Document, DocumentRead
-from app.services.storage import save_upload_file
 import os
+import shutil
+from fastapi import APIRouter, Depends, File, UploadFile, HTTPException
+from sqlalchemy.orm import Session
+from typing import List
+
+from .models import Document
+from .database import get_session, init_db
 
 router = APIRouter()
 
-@router.post("/upload", response_model=DocumentRead)
+# Ensure upload directory exists
+UPLOAD_DIR = "/tmp/document_uploads"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+@router.post("/upload")
 async def upload_document(
-    file: UploadFile = File(...),
-    x_user_id: Optional[str] = Header(None, alias="X-User-ID"),
+    file: UploadFile = File(...), 
     session: Session = Depends(get_session)
 ):
-    try:
-        filename = os.path.basename(file.filename).strip()
-        if not filename:
-            raise HTTPException(status_code=400, detail="Filename cannot be empty.")
-        
-        current_user = x_user_id or "Anonymous"
-        
-        # Check for existing document by name
-        existing_doc = session.exec(
-            select(Document).where(func.lower(Document.name) == func.lower(filename))
-        ).first()
-        
-        file_path = save_upload_file(file)
-        
-        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-            content = f.read().replace("\x00", "")
+    # Validate file
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No file uploaded")
+    
+    # Create unique filename
+    file_path = os.path.join(UPLOAD_DIR, file.filename)
+    
+    # Save file to disk
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    
+    # Create document record
+    document = Document(
+        name=file.filename,
+        size=os.path.getsize(file_path),
+        content_type=file.content_type or "application/octet-stream",
+        path=file_path,
+        owner_id=None,  # Add user ID logic later
+        last_modified_by=None
+    )
+    
+    session.add(document)
+    session.commit()
+    session.refresh(document)
+    
+    return document.to_dict()
 
-        if existing_doc:
-            existing_doc.size = os.path.getsize(file_path)
-            existing_doc.created_at = datetime.now(timezone.utc)
-            existing_doc.last_modified_by = current_user
-            existing_doc.extracted_text = content
-            existing_doc.path = file_path
-            db_doc = existing_doc
-        else:
-            db_doc = Document(
-                name=filename,
-                size=os.path.getsize(file_path),
-                content_type=file.content_type,
-                path=file_path,
-                owner_id=1,
-                last_modified_by=current_user,
-                extracted_text=content
-            )
-        
-        session.add(db_doc)
-        session.commit()
-        session.refresh(db_doc)
-        
-        # Ensure DocumentRead has versions
-        return DocumentRead(**db_doc.dict(), versions=[])
-        
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        # Keep minimal error logging
-        print(f"ERROR: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.get("", response_model=List[DocumentRead])
-async def read_documents(
+@router.get("")
+async def list_documents(
     session: Session = Depends(get_session)
 ):
-    # Fetch all documents, sorted by ID descending
-    db_docs = session.exec(select(Document).order_by(Document.id.desc())).all()
-    return [DocumentRead(**doc.dict(), versions=[]) for doc in db_docs]
+    documents = session.query(Document).all()
+    return [doc.to_dict() for doc in documents]
 
 @router.get("/{document_id}")
-async def get_document(document_id: int, session: Session = Depends(get_session)):
-    document = session.get(Document, document_id)
-    if not document:
-        raise HTTPException(status_code=404, detail="Document not found")
-    # Return as DocumentRead with empty versions
-    return DocumentRead(**document.dict(), versions=[])
-
-@router.get("/{document_id}/view")
-async def view_document(
+async def get_document(
     document_id: int,
     session: Session = Depends(get_session)
 ):
@@ -90,13 +61,7 @@ async def view_document(
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
     
-    if not os.path.exists(document.path):
-        raise HTTPException(status_code=404, detail="File not found on disk")
-    
-    with open(document.path, 'r', encoding='utf-8', errors='ignore') as f:
-        text_content = f.read()
-    
-    return Response(content=text_content, media_type="text/plain")
+    return document.to_dict()
 
 @router.delete("/{document_id}")
 async def delete_document(
@@ -119,3 +84,20 @@ async def delete_document(
     session.commit()
     
     return {"message": "Document deleted successfully"}
+
+@router.get("/{document_id}/view")
+async def view_document(
+    document_id: int,
+    session: Session = Depends(get_session)
+):
+    document = session.get(Document, document_id)
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    if not os.path.exists(document.path):
+        raise HTTPException(status_code=404, detail="File not found on disk")
+    
+    with open(document.path, 'r', encoding='utf-8', errors='ignore') as f:
+        text_content = f.read()
+    
+    return {"content": text_content}

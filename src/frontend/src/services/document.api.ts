@@ -9,7 +9,7 @@ export interface ApiDocument {
     created_at: string;
     owner_id: number;
     last_modified_by: string;
-    versions: {
+    versions?: {
         id: number;
         version_number: number;
         path: string;

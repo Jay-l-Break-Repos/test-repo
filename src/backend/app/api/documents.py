@@ -81,12 +81,30 @@ async def get_document(document_id: int, session: Session = Depends(get_session)
     # Return as DocumentRead with empty versions
     return DocumentRead(**document.dict(), versions=[])
 
-@router.delete("/{document_id}")
+@router.get("/{document_id}/view")
+async def view_document(
+    document_id: int,
+    session: Session = Depends(get_session)
+):
+    document = session.get(Document, document_id)
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    if not os.path.exists(document.path):
+        raise HTTPException(status_code=404, detail="File not found on disk")
+    
+    with open(document.path, 'r', encoding='utf-8', errors='ignore') as f:
+        text_content = f.read()
+    
+    return Response(content=text_content, media_type="text/plain")
+
+
+@router.delete("/{document_id}", status_code=200)
 async def delete_document(
     document_id: int,
     session: Session = Depends(get_session)
 ):
-    """Permanently delete a document by ID.
+    """Permanently delete a document by its ID.
 
     Removes the document record from the database (hard delete — no soft
     delete or archiving) and, if the associated file still exists on disk,
@@ -127,21 +145,3 @@ async def delete_document(
         "success": True,
         "message": f"Document '{doc_name}' has been permanently deleted.",
     }
-
-
-@router.get("/{document_id}/view")
-async def view_document(
-    document_id: int,
-    session: Session = Depends(get_session)
-):
-    document = session.get(Document, document_id)
-    if not document:
-        raise HTTPException(status_code=404, detail="Document not found")
-    
-    if not os.path.exists(document.path):
-        raise HTTPException(status_code=404, detail="File not found on disk")
-    
-    with open(document.path, 'r', encoding='utf-8', errors='ignore') as f:
-        text_content = f.read()
-    
-    return Response(content=text_content, media_type="text/plain")

@@ -5,12 +5,18 @@ from sqlmodel import SQLModel, create_engine, Session
 from app.models.user import User
 from app.models.document import Document
 
-# Database connection URL from environment
-DATABASE_URL = os.getenv("DATABASE_URL")
-if not DATABASE_URL:
-    raise ValueError("DATABASE_URL environment variable is not set")
+# Database connection URL from environment.
+# A fallback SQLite URL is used when DATABASE_URL is not set so that the
+# module can be imported in test environments (where the engine is replaced
+# via dependency injection / monkey-patching before any real DB call is made).
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./test_fallback.db")
 
-engine = create_engine(DATABASE_URL, echo=True)
+engine = create_engine(
+    DATABASE_URL,
+    echo=True,
+    # SQLite requires this flag when the same connection is used across threads
+    connect_args={"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {},
+)
 
 def get_session():
     with Session(engine) as session:

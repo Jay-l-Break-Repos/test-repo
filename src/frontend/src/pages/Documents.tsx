@@ -177,7 +177,7 @@ export const Documents = () => {
                                                         <button
                                                             onClick={(e) => handleDeleteClick(e, doc)}
                                                             className="p-2 hover:bg-rose-50 text-gray-400 hover:text-rose-600 rounded-lg transition-colors"
-                                                            title="Delete Document"
+                                                            title="Delete"
                                                         >
                                                             <Trash2 size={18} />
                                                         </button>

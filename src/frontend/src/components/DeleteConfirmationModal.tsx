@@ -61,7 +61,7 @@ export const DeleteConfirmationModal = ({
                             <tr className="bg-gray-50">
                                 <td className="px-4 py-3 font-medium text-gray-700">File name</td>
                                 <td className="px-4 py-3 text-gray-900 font-semibold break-all">
-                                    {documentName}
+                                    "{documentName}"
                                 </td>
                             </tr>
                         </tbody>

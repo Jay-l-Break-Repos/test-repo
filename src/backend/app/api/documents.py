@@ -116,22 +116,3 @@ async def delete_document(document_id: int, session: Session = Depends(get_sessi
     
     # Return success response with 200 status
     return {"success": True, "message": f"'{document_name}' has been permanently deleted."}
-
-@router.delete("/{document_id}")
-async def delete_document(document_id: int, session: Session = Depends(get_session)):
-    document = session.get(Document, document_id)
-    if not document:
-        raise HTTPException(status_code=404, detail="Document not found")
-    
-    document_name = document.name
-
-    # Delete the file from disk first (if it exists)
-    if os.path.exists(document.path):
-        os.remove(document.path)
-    
-    # Delete the database record
-    session.delete(document)
-    session.commit()
-    
-    # Return success response with 200 status
-    return {"success": True, "message": f"'{document_name}' has been permanently deleted."}

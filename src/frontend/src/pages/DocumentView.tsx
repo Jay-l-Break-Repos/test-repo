@@ -4,6 +4,7 @@ import { ArrowLeft, FileText } from 'lucide-react';
 import { type ApiDocument, getDocument } from '../services/document.api';
 import axios from 'axios';
 import { showError } from '../utils/toast';
+import { ConfirmationModal } from '../components/ConfirmationModal';
 
 
 import './DocumentView.css';
@@ -14,6 +15,9 @@ export const DocumentView: React.FC = () => {
     const [document, setDocument] = useState<ApiDocument | null>(null);
     const [textContent, setTextContent] = useState("");
     const [loading, setLoading] = useState(true);
+    const [deleteModal, setDeleteModal] = useState({
+        isOpen: false
+    });
 
 
     useEffect(() => {
@@ -93,6 +97,23 @@ export const DocumentView: React.FC = () => {
         );
     };
 
+    const handleDelete = async () => {
+        try {
+            const response = await fetch(`/api/documents/${document.id}`, { method: 'DELETE' });
+            if (response.ok) {
+                // Navigate back to documents list
+                navigate('/documents');
+            } else {
+                throw new Error('Failed to delete document');
+            }
+        } catch (error) {
+            console.error('Error deleting document:', error);
+            showError('Failed to delete document');
+        } finally {
+            setDeleteModal({ isOpen: false });
+        }
+    };
+
     return (
         <div className="document-view-container">
             <div className="document-view-content">
@@ -138,22 +159,7 @@ export const DocumentView: React.FC = () => {
                         <div className="document-actions">
                             <button
                                 onClick={() => {
-                                    if (window.confirm('Are you sure you want to delete this document?')) {
-                                        // Call delete endpoint
-                                        fetch(`/api/documents/${document.id}`, { method: 'DELETE' })
-                                            .then(response => {
-                                                if (response.ok) {
-                                                    // Navigate back to documents list
-                                                    navigate('/documents');
-                                                } else {
-                                                    throw new Error('Failed to delete document');
-                                                }
-                                            })
-                                            .catch(error => {
-                                                console.error('Error deleting document:', error);
-                                                alert('Failed to delete document');
-                                            });
-                                    }
+                                    setDeleteModal({ isOpen: true });
                                 }}
                                 className="p-2 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded-lg transition-colors ml-3"
                                 title="Delete Document"
@@ -172,6 +178,17 @@ export const DocumentView: React.FC = () => {
                     </div>
                 </div>
             </div>
+            
+            {/* Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={deleteModal.isOpen}
+                onClose={() => setDeleteModal({ isOpen: false })}
+                onConfirm={handleDelete}
+                title="Delete Document"
+                message={`Are you sure you want to delete the document '${document.name}'? This action cannot be undone.`}
+                confirmText="Delete"
+                cancelText="Cancel"
+            />
         </div>
     );
 };

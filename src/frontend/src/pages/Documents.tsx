@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { FileText, Eye, Plus } from 'lucide-react';
 import { getDocuments } from '../services/document.api';
 import { showError } from '../utils/toast';
+import { ConfirmationModal } from '../components/ConfirmationModal';
 
 interface Document {
     id: number;
@@ -18,6 +19,11 @@ export const Documents = () => {
     const navigate = useNavigate();
     const [documents, setDocuments] = useState<Document[]>([]);
     const [loading, setLoading] = useState(true);
+    const [deleteModal, setDeleteModal] = useState({
+        isOpen: false,
+        documentId: null as number | null,
+        documentName: ''
+    });
 
     const fetchDocuments = async () => {
         setLoading(true);
@@ -58,6 +64,22 @@ export const Documents = () => {
         return <FileText size={20} className="text-gray-500" />;
     };
 
+    const handleDelete = async (documentId: number, documentName: string) => {
+        try {
+            const response = await fetch(`/api/documents/${documentId}`, { method: 'DELETE' });
+            if (response.ok) {
+                // Refresh documents list
+                fetchDocuments();
+            } else {
+                throw new Error('Failed to delete document');
+            }
+        } catch (error) {
+            console.error('Error deleting document:', error);
+            showError('Failed to delete document');
+        } finally {
+            setDeleteModal({ isOpen: false, documentId: null, documentName: '' });
+        }
+    };
 
     return (
         <div className="p-6 max-w-[1600px] mx-auto bg-gray-50/50 min-h-screen">
@@ -148,23 +170,11 @@ export const Documents = () => {
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        // Show confirmation modal
-                                                        if (window.confirm('Are you sure you want to delete this document?')) {
-                                                            // Call delete endpoint
-                                                            fetch(`/api/documents/${doc.id}`, { method: 'DELETE' })
-                                                                .then(response => {
-                                                                    if (response.ok) {
-                                                                        // Refresh documents list
-                                                                        fetchDocuments();
-                                                                    } else {
-                                                                        throw new Error('Failed to delete document');
-                                                                    }
-                                                                })
-                                                                .catch(error => {
-                                                                    console.error('Error deleting document:', error);
-                                                                    alert('Failed to delete document');
-                                                                });
-                                                        }
+                                                        setDeleteModal({
+                                                            isOpen: true,
+                                                            documentId: doc.id,
+                                                            documentName: doc.name
+                                                        });
                                                     }}
                                                     className="ml-2 p-2 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded-lg transition-colors"
                                                     title="Delete"
@@ -183,6 +193,17 @@ export const Documents = () => {
                     )}
                 </div>
             </div>
+            
+            {/* Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={deleteModal.isOpen}
+                onClose={() => setDeleteModal({ ...deleteModal, isOpen: false })}
+                onConfirm={() => handleDelete(deleteModal.documentId!, deleteModal.documentName)}
+                title="Delete Document"
+                message={`Are you sure you want to delete the document '${deleteModal.documentName}'? This action cannot be undone.`}
+                confirmText="Delete"
+                cancelText="Cancel"
+            />
         </div>
     );
 };

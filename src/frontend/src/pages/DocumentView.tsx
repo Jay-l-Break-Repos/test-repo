@@ -136,7 +136,18 @@ export const DocumentView: React.FC = () => {
 
                         {/* Action Buttons Container */}
                         <div className="document-actions">
-
+                            <button
+                                className="delete-button"
+                                title="Delete Document"
+                                onClick={() => {
+                                    if (confirm('Are you sure you want to delete this document?')) {
+                                        // TODO: Implement delete functionality
+                                        console.log('Delete document:', id);
+                                    }
+                                }}
+                            >
+                                🗑️ Delete
+                            </button>
                         </div>
                     </div>
 

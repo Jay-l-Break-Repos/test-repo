@@ -147,6 +147,19 @@ export const Documents = () => {
                                                 >
                                                     <Eye size={18} />
                                                 </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        if (confirm(`Are you sure you want to delete "${doc.name}"?`)) {
+                                                            // TODO: Implement delete functionality
+                                                            console.log('Delete document:', doc.id);
+                                                        }
+                                                    }}
+                                                    className="p-2 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded-lg transition-colors ml-1"
+                                                    title="Delete"
+                                                >
+                                                    🗑️
+                                                </button>
                                             </td>
                                         </tr>
                                     ))

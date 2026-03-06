@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { FileText, Eye, Plus } from 'lucide-react';
 import { getDocuments } from '../services/document.api';
 import { showError } from '../utils/toast';
+import { ConfirmationModal } from '../components';
 
 interface Document {
     id: number;
@@ -18,6 +19,8 @@ export const Documents = () => {
     const navigate = useNavigate();
     const [documents, setDocuments] = useState<Document[]>([]);
     const [loading, setLoading] = useState(true);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [documentToDelete, setDocumentToDelete] = useState<Document | null>(null);
 
     const fetchDocuments = async () => {
         setLoading(true);
@@ -56,6 +59,26 @@ export const Documents = () => {
 
         // Default
         return <FileText size={20} className="text-gray-500" />;
+    };
+
+    const handleDeleteClick = (doc: Document, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setDocumentToDelete(doc);
+        setShowDeleteModal(true);
+    };
+
+    const handleConfirmDelete = () => {
+        if (documentToDelete) {
+            // TODO: Implement actual delete functionality
+            console.log('Delete document:', documentToDelete.id);
+            setShowDeleteModal(false);
+            setDocumentToDelete(null);
+        }
+    };
+
+    const handleCancelDelete = () => {
+        setShowDeleteModal(false);
+        setDocumentToDelete(null);
     };
 
 
@@ -148,13 +171,7 @@ export const Documents = () => {
                                                     <Eye size={18} />
                                                 </button>
                                                 <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        if (confirm(`Are you sure you want to delete "${doc.name}"?`)) {
-                                                            // TODO: Implement delete functionality
-                                                            console.log('Delete document:', doc.id);
-                                                        }
-                                                    }}
+                                                    onClick={(e) => handleDeleteClick(doc, e)}
                                                     className="p-2 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded-lg transition-colors ml-1"
                                                     title="Delete"
                                                 >
@@ -169,6 +186,17 @@ export const Documents = () => {
                     )}
                 </div>
             </div>
+
+            {/* Delete Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={showDeleteModal}
+                title="Delete Document"
+                message={`Are you sure you want to delete "${documentToDelete?.name}"?`}
+                confirmText="Delete"
+                cancelText="Cancel"
+                onConfirm={handleConfirmDelete}
+                onCancel={handleCancelDelete}
+            />
         </div>
     );
 };

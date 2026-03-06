@@ -4,6 +4,7 @@ import { ArrowLeft, FileText } from 'lucide-react';
 import { type ApiDocument, getDocument } from '../services/document.api';
 import axios from 'axios';
 import { showError } from '../utils/toast';
+import { ConfirmationModal } from '../components';
 
 
 import './DocumentView.css';
@@ -14,6 +15,7 @@ export const DocumentView: React.FC = () => {
     const [document, setDocument] = useState<ApiDocument | null>(null);
     const [textContent, setTextContent] = useState("");
     const [loading, setLoading] = useState(true);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
 
 
     useEffect(() => {
@@ -93,6 +95,18 @@ export const DocumentView: React.FC = () => {
         );
     };
 
+    const handleConfirmDelete = () => {
+        if (id) {
+            // TODO: Implement actual delete functionality
+            console.log('Delete document:', id);
+            setShowDeleteModal(false);
+        }
+    };
+
+    const handleCancelDelete = () => {
+        setShowDeleteModal(false);
+    };
+
     return (
         <div className="document-view-container">
             <div className="document-view-content">
@@ -139,12 +153,7 @@ export const DocumentView: React.FC = () => {
                             <button
                                 className="delete-button"
                                 title="Delete Document"
-                                onClick={() => {
-                                    if (confirm('Are you sure you want to delete this document?')) {
-                                        // TODO: Implement delete functionality
-                                        console.log('Delete document:', id);
-                                    }
-                                }}
+                                onClick={() => setShowDeleteModal(true)}
                             >
                                 🗑️ Delete
                             </button>
@@ -157,6 +166,17 @@ export const DocumentView: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Delete Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={showDeleteModal}
+                title="Delete Document"
+                message={`Are you sure you want to delete "${document?.name}"?`}
+                confirmText="Delete"
+                cancelText="Cancel"
+                onConfirm={handleConfirmDelete}
+                onCancel={handleCancelDelete}
+            />
         </div>
     );
 };

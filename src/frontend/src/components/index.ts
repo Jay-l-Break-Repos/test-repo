@@ -1,2 +1,1 @@
-export * from './CustomAlert';
-export * from './Sidebar';
+export { DeleteConfirmationModal } from './DeleteConfirmationModal';

@@ -112,5 +112,10 @@ async def delete_document(document_id: int, session: Session = Depends(get_sessi
     session.delete(document)
     session.commit()
     
+<<<<<<< HEAD
     # Return 200 OK status only (no response body)
     return Response(status_code=200)
+=======
+    # Return success response - empty body with 200 status
+    return None
+>>>>>>> 9bd30fa (Add DELETE endpoint for document deletion with proper 200/404 responses)

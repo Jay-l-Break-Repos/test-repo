@@ -9,3 +9,5 @@ python-docx==1.1.2
 requests
 markdown==3.7
 openpyxl==3.1.2
+pytest
+httpx

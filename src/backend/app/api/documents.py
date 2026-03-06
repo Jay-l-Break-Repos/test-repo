@@ -1,14 +1,31 @@
+"""
+Documents API Router
+--------------------
+Provides HTTP endpoints for document management.  All database access is
+delegated to :class:`~app.services.document_repository.DocumentRepository`
+so that route handlers remain thin and focused on HTTP concerns.
+"""
+
 from typing import List, Optional
+
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Header, Response
 from fastapi.responses import HTMLResponse
 from datetime import datetime, timezone
 from sqlmodel import Session, select, func
+
 from app.core.database import get_session
 from app.models.document import Document, DocumentRead
 from app.services.storage import save_upload_file
+from app.services.document_repository import DocumentRepository
 import os
 
 router = APIRouter()
+
+
+def get_document_repository(session: Session = Depends(get_session)) -> DocumentRepository:
+    """FastAPI dependency that provides a :class:`DocumentRepository` instance."""
+    return DocumentRepository(session)
+
 
 @router.post("/upload", response_model=DocumentRead)
 async def upload_document(
@@ -20,16 +37,16 @@ async def upload_document(
         filename = os.path.basename(file.filename).strip()
         if not filename:
             raise HTTPException(status_code=400, detail="Filename cannot be empty.")
-        
+
         current_user = x_user_id or "Anonymous"
-        
+
         # Check for existing document by name
         existing_doc = session.exec(
             select(Document).where(func.lower(Document.name) == func.lower(filename))
         ).first()
-        
+
         file_path = save_upload_file(file)
-        
+
         with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
             content = f.read().replace("\x00", "")
 
@@ -50,45 +67,46 @@ async def upload_document(
                 last_modified_by=current_user,
                 extracted_text=content
             )
-        
+
         session.add(db_doc)
         session.commit()
         session.refresh(db_doc)
-        
-        # Ensure DocumentRead has versions
+
         return DocumentRead(**db_doc.dict(), versions=[])
-        
+
     except Exception as e:
         import traceback
         traceback.print_exc()
-        # Keep minimal error logging
         print(f"ERROR: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("", response_model=List[DocumentRead])
 async def read_documents(
-    session: Session = Depends(get_session)
+    repo: DocumentRepository = Depends(get_document_repository),
 ):
-    # Fetch only active (non-soft-deleted) documents, sorted by ID descending.
-    # Documents with a non-NULL deleted_at are excluded from this listing.
-    db_docs = session.exec(
-        select(Document)
-        .where(Document.deleted_at == None)  # noqa: E711 — SQLModel requires == None for IS NULL
-        .order_by(Document.id.desc())
-    ).all()
-    return [DocumentRead(**doc.dict(), versions=[]) for doc in db_docs]
+    """List all active (non-soft-deleted) documents, newest first."""
+    docs = repo.get_all_active()
+    return [DocumentRead(**doc.dict(), versions=[]) for doc in docs]
 
-@router.get("/{document_id}")
-async def get_document(document_id: int, session: Session = Depends(get_session)):
-    document = session.get(Document, document_id)
-    if not document or document.deleted_at is not None:
+
+@router.get("/{document_id}", response_model=DocumentRead)
+async def get_document(
+    document_id: int,
+    repo: DocumentRepository = Depends(get_document_repository),
+):
+    """Retrieve a single active document by ID."""
+    document = repo.get_active_by_id(document_id)
+    if document is None:
         raise HTTPException(status_code=404, detail="Document not found")
     return DocumentRead(**document.dict(), versions=[])
+
 
 @router.delete("/{document_id}")
 async def delete_document(
     document_id: int,
-    session: Session = Depends(get_session)
+    repo: DocumentRepository = Depends(get_document_repository),
+    session: Session = Depends(get_session),
 ):
     """Soft-delete a document by ID.
 
@@ -101,6 +119,7 @@ async def delete_document(
 
     Args:
         document_id: Primary key of the document to soft-delete.
+        repo: Document repository (injected by FastAPI).
         session: SQLModel database session (injected by FastAPI).
 
     Returns:
@@ -110,15 +129,11 @@ async def delete_document(
         HTTPException 404: If no document with the given ID exists, or if
             it has already been soft-deleted.
     """
-    document = session.get(Document, document_id)
-    if not document or document.deleted_at is not None:
+    document = repo.soft_delete(document_id)
+    if document is None:
         raise HTTPException(status_code=404, detail="Document not found")
 
     doc_name = document.name
-
-    # Soft-delete: stamp the current UTC time instead of removing the row.
-    document.deleted_at = datetime.now(timezone.utc)
-    session.add(document)
     session.commit()
 
     return {
@@ -135,11 +150,11 @@ async def view_document(
     document = session.get(Document, document_id)
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
-    
+
     if not os.path.exists(document.path):
         raise HTTPException(status_code=404, detail="File not found on disk")
-    
+
     with open(document.path, 'r', encoding='utf-8', errors='ignore') as f:
         text_content = f.read()
-    
+
     return Response(content=text_content, media_type="text/plain")

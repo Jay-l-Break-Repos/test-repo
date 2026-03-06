@@ -1,5 +1,11 @@
 """
-Unit tests for DELETE /api/documents/{document_id} — soft-delete behaviour.
+Unit tests for document deletion — covering both the DocumentRepository
+service layer and the DELETE /api/documents/{document_id} HTTP endpoint.
+
+Architecture under test
+-----------------------
+* ``DocumentRepository`` — data-access layer (soft-delete logic lives here).
+* ``DELETE /api/documents/{id}`` — HTTP endpoint that delegates to the repo.
 
 Uses an in-memory SQLite database and FastAPI's TestClient so no external
 services (Postgres, Docker, etc.) are required.
@@ -25,6 +31,11 @@ from sqlmodel.pool import StaticPool
 # App bootstrap — override the DB engine BEFORE importing the app so that
 # database.py's module-level engine is replaced with the in-memory one.
 # ---------------------------------------------------------------------------
+
+# Set DATABASE_URL before importing any app modules that read it at module level.
+import os as _os
+_os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
+
 import app.core.database as _db_module
 
 # In-memory SQLite engine shared across all connections in the same thread
@@ -46,6 +57,7 @@ def _override_get_session():
 from app.main import app
 from app.core.database import get_session
 from app.models.document import Document
+from app.services.document_repository import DocumentRepository
 
 app.dependency_overrides[get_session] = _override_get_session
 
@@ -98,12 +110,140 @@ def seeded_document(tmp_file):
         return doc
 
 
+@pytest.fixture
+def db_session():
+    """Provide a raw SQLModel session for repository-level tests."""
+    with Session(_test_engine) as session:
+        yield session
+
+
 # ---------------------------------------------------------------------------
-# Tests
+# Repository unit tests
+# ---------------------------------------------------------------------------
+
+class TestDocumentRepository:
+    """Direct unit tests for DocumentRepository — no HTTP layer involved."""
+
+    def test_get_all_active_returns_only_active_documents(self, db_session, seeded_document):
+        """get_all_active() excludes soft-deleted documents."""
+        repo = DocumentRepository(db_session)
+        active_ids = [d.id for d in repo.get_all_active()]
+        assert seeded_document.id in active_ids
+
+    def test_get_all_active_excludes_soft_deleted(self, db_session, seeded_document):
+        """get_all_active() does not return documents with a non-NULL deleted_at."""
+        repo = DocumentRepository(db_session)
+        repo.soft_delete(seeded_document.id)
+        db_session.commit()
+
+        active_ids = [d.id for d in repo.get_all_active()]
+        assert seeded_document.id not in active_ids
+
+    def test_get_by_id_returns_document(self, db_session, seeded_document):
+        """get_by_id() returns the document regardless of soft-delete status."""
+        repo = DocumentRepository(db_session)
+        doc = repo.get_by_id(seeded_document.id)
+        assert doc is not None
+        assert doc.id == seeded_document.id
+
+    def test_get_by_id_returns_none_for_missing(self, db_session):
+        """get_by_id() returns None when no document has the given ID."""
+        repo = DocumentRepository(db_session)
+        assert repo.get_by_id(99999) is None
+
+    def test_get_by_id_returns_soft_deleted_document(self, db_session, seeded_document):
+        """get_by_id() still returns a soft-deleted document (caller decides what to do)."""
+        repo = DocumentRepository(db_session)
+        repo.soft_delete(seeded_document.id)
+        db_session.commit()
+
+        doc = repo.get_by_id(seeded_document.id)
+        assert doc is not None
+        assert doc.deleted_at is not None
+
+    def test_get_active_by_id_returns_active_document(self, db_session, seeded_document):
+        """get_active_by_id() returns the document when it is active."""
+        repo = DocumentRepository(db_session)
+        doc = repo.get_active_by_id(seeded_document.id)
+        assert doc is not None
+        assert doc.id == seeded_document.id
+
+    def test_get_active_by_id_returns_none_for_soft_deleted(self, db_session, seeded_document):
+        """get_active_by_id() returns None after the document is soft-deleted."""
+        repo = DocumentRepository(db_session)
+        repo.soft_delete(seeded_document.id)
+        db_session.commit()
+
+        assert repo.get_active_by_id(seeded_document.id) is None
+
+    def test_get_active_by_id_returns_none_for_missing(self, db_session):
+        """get_active_by_id() returns None when no document has the given ID."""
+        repo = DocumentRepository(db_session)
+        assert repo.get_active_by_id(99999) is None
+
+    def test_soft_delete_stamps_deleted_at(self, db_session, seeded_document):
+        """soft_delete() sets deleted_at to a non-NULL UTC timestamp."""
+        repo = DocumentRepository(db_session)
+        updated = repo.soft_delete(seeded_document.id)
+        db_session.commit()
+
+        assert updated is not None
+        assert updated.deleted_at is not None
+
+    def test_soft_delete_does_not_remove_row(self, db_session, seeded_document):
+        """soft_delete() leaves the database row intact."""
+        repo = DocumentRepository(db_session)
+        repo.soft_delete(seeded_document.id)
+        db_session.commit()
+
+        row = db_session.get(Document, seeded_document.id)
+        assert row is not None, "Row must still exist after soft_delete()"
+
+    def test_soft_delete_returns_none_for_missing_id(self, db_session):
+        """soft_delete() returns None when the document ID does not exist."""
+        repo = DocumentRepository(db_session)
+        result = repo.soft_delete(99999)
+        assert result is None
+
+    def test_soft_delete_returns_none_for_already_deleted(self, db_session, seeded_document):
+        """soft_delete() returns None when the document is already soft-deleted."""
+        repo = DocumentRepository(db_session)
+        repo.soft_delete(seeded_document.id)
+        db_session.commit()
+
+        second = repo.soft_delete(seeded_document.id)
+        assert second is None
+
+    def test_soft_delete_does_not_affect_other_documents(self, db_session, seeded_document):
+        """soft_delete() only marks the targeted document; others remain active."""
+        with Session(_test_engine) as s2:
+            other = Document(
+                name="other.txt",
+                size=5,
+                content_type="text/plain",
+                path="/nonexistent/other.txt",
+                owner_id=1,
+            )
+            s2.add(other)
+            s2.commit()
+            s2.refresh(other)
+            other_id = other.id
+
+        repo = DocumentRepository(db_session)
+        repo.soft_delete(seeded_document.id)
+        db_session.commit()
+
+        still_active = db_session.get(Document, other_id)
+        assert still_active is not None
+        assert still_active.deleted_at is None
+
+
+# ---------------------------------------------------------------------------
+# HTTP endpoint integration tests
 # ---------------------------------------------------------------------------
 
 class TestDeleteDocument:
-    """Tests for DELETE /api/documents/{document_id} (soft-delete)"""
+    """Tests for DELETE /api/documents/{document_id} (soft-delete via HTTP)."""
 
     def test_delete_existing_document_returns_200(self, client, seeded_document):
         """Calling DELETE on a valid ID returns HTTP 200."""

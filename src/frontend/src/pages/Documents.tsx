@@ -1,3 +1,4 @@
+import React from 'react';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileText, Eye, Plus, Trash2 } from 'lucide-react';
@@ -14,7 +15,7 @@ interface Document {
     last_modified_by: string;
 }
 
-export const Documents = () => {
+export const Documents: React.FC = () => {
     const navigate = useNavigate();
     const [documents, setDocuments] = useState<Document[]>([]);
     const [loading, setLoading] = useState(true);
@@ -50,9 +51,12 @@ export const Documents = () => {
 
     return (
         <div className="p-6 max-w-[1600px] mx-auto bg-gray-50/50 min-h-screen">
+            {/* DIAGNOSTIC: Visible heading */}
+            <h1 className="text-3xl font-bold mb-6 text-center">Documents</h1>
+
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Documents</h1>
+                    <h2 className="text-2xl font-bold text-gray-900">Your Documents</h2>
                 </div>
 
                 <div className="flex items-center gap-4 w-full md:w-auto">

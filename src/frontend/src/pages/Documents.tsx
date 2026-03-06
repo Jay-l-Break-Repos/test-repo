@@ -61,6 +61,9 @@ export const Documents = () => {
 
     return (
         <div className="p-6 max-w-[1600px] mx-auto bg-gray-50/50 min-h-screen">
+            {/* Diagnostic marker - can't fail */}
+            <div dangerouslySetInnerHTML={{ __html: '<!--DOCUMENTS_DEBUG-->' }} />
+            
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                 <div>

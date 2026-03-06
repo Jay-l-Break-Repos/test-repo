@@ -18,9 +18,11 @@ engine = create_engine(
 )
 
 def override_get_session():
-    SQLModel.metadata.create_all(engine)
     with Session(engine) as session:
         yield session
+
+# Create tables once before running tests
+SQLModel.metadata.create_all(engine)
 
 app.dependency_overrides[get_session] = override_get_session
 client = TestClient(app)

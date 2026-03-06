@@ -216,7 +216,7 @@ test.describe('Public Environment E2E', () => {
 
             // Click the delete (trash) button for this document
             const row = page.locator('tr', { has: page.getByText(fileName) });
-            await row.getByTitle('Delete').click();
+            await row.getByTitle('Delete Document').click();
 
             // Confirmation modal should appear
             const modal = page.locator('[class*="rounded-2xl"]').filter({ has: page.getByRole('heading', { name: /Delete Document/i }) });
@@ -240,7 +240,7 @@ test.describe('Public Environment E2E', () => {
             await expect(page.getByText(fileName)).toBeVisible();
 
             const row = page.locator('tr', { has: page.getByText(fileName) });
-            await row.getByTitle('Delete').click();
+            await row.getByTitle('Delete Document').click();
             await expect(page.getByRole('heading', { name: /Delete Document/i })).toBeVisible();
 
             await page.getByRole('button', { name: /Cancel/i }).click();
@@ -263,7 +263,7 @@ test.describe('Public Environment E2E', () => {
             await expect(page.getByText(fileName)).toBeVisible();
 
             const row = page.locator('tr', { has: page.getByText(fileName) });
-            await row.getByTitle('Delete').click();
+            await row.getByTitle('Delete Document').click();
             await expect(page.getByRole('heading', { name: /Delete Document/i })).toBeVisible();
             await page.getByRole('button', { name: 'Delete', exact: true }).click();
 
@@ -272,7 +272,7 @@ test.describe('Public Environment E2E', () => {
             await expect(page.getByText(fileName)).not.toBeVisible();
             // react-hot-toast renders each toast message with role="status" aria-live="polite"
             await expect(
-                page.getByRole('status').filter({ hasText: /permanently deleted/i })
+                page.getByRole('status').filter({ hasText: /deleted successfully/i })
             ).toBeVisible({ timeout: 8000 });
         });
     });

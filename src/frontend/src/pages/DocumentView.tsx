@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, FileText } from 'lucide-react';
-import { type ApiDocument, getDocument } from '../services/document.api';
+import { type ApiDocument, getDocument, deleteDocument } from '../services/document.api';
 import axios from 'axios';
 import { showError } from '../utils/toast';
 import { ConfirmationModal } from '../components';
@@ -16,6 +16,7 @@ export const DocumentView: React.FC = () => {
     const [textContent, setTextContent] = useState("");
     const [loading, setLoading] = useState(true);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deleteSuccess, setDeleteSuccess] = useState(false);
 
 
     useEffect(() => {
@@ -95,11 +96,25 @@ export const DocumentView: React.FC = () => {
         );
     };
 
-    const handleConfirmDelete = () => {
+    const handleConfirmDelete = async () => {
         if (id) {
-            // TODO: Implement actual delete functionality
-            console.log('Delete document:', id);
-            setShowDeleteModal(false);
+            console.log('Delete clicked for document ID:', id);
+            try {
+                await deleteDocument(parseInt(id));
+                console.log('API delete succeeded');
+                setShowDeleteModal(false);
+                setDeleteSuccess(true);
+                console.log('Success state set to true');
+                
+                // Redirect to documents list after successful deletion
+                setTimeout(() => {
+                    console.log('Redirecting to documents list');
+                    navigate('/documents');
+                }, 1000);
+            } catch (error) {
+                console.error('Delete failed:', error);
+                showError('Failed to delete document');
+            }
         }
     };
 
@@ -109,6 +124,13 @@ export const DocumentView: React.FC = () => {
 
     return (
         <div className="document-view-container">
+            {/* Success Message */}
+            {deleteSuccess && (
+                <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800 shadow-lg">
+                    Document deleted successfully
+                </div>
+            )}
+            
             <div className="document-view-content">
                 {/* Unified Card Container */}
                 <div className="document-card">

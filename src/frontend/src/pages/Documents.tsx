@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileText, Eye, Plus } from 'lucide-react';
-import { getDocuments } from '../services/document.api';
+import { getDocuments, deleteDocument } from '../services/document.api';
 import { showError } from '../utils/toast';
 import { ConfirmationModal } from '../components';
 
@@ -21,6 +21,7 @@ export const Documents = () => {
     const [loading, setLoading] = useState(true);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [documentToDelete, setDocumentToDelete] = useState<Document | null>(null);
+    const [deleteSuccess, setDeleteSuccess] = useState(false);
 
     const fetchDocuments = async () => {
         setLoading(true);
@@ -67,12 +68,31 @@ export const Documents = () => {
         setShowDeleteModal(true);
     };
 
-    const handleConfirmDelete = () => {
+    const handleConfirmDelete = async () => {
         if (documentToDelete) {
-            // TODO: Implement actual delete functionality
-            console.log('Delete document:', documentToDelete.id);
-            setShowDeleteModal(false);
-            setDocumentToDelete(null);
+            console.log('Delete clicked for document ID:', documentToDelete.id);
+            try {
+                await deleteDocument(documentToDelete.id);
+                console.log('API delete succeeded');
+                setShowDeleteModal(false);
+                setDeleteSuccess(true);
+                console.log('Success state set to true');
+                
+                // Refresh the documents list
+                await fetchDocuments();
+                console.log('Documents list refreshed');
+                
+                // Clear success message after 3 seconds
+                setTimeout(() => {
+                    setDeleteSuccess(false);
+                    console.log('Success state cleared');
+                }, 3000);
+            } catch (error) {
+                console.error('Delete failed:', error);
+                showError('Failed to delete document');
+            } finally {
+                setDocumentToDelete(null);
+            }
         }
     };
 
@@ -86,6 +106,13 @@ export const Documents = () => {
         <div className="p-6 max-w-[1600px] mx-auto bg-gray-50/50 min-h-screen">
             {/* Diagnostic marker - can't fail */}
             <div dangerouslySetInnerHTML={{ __html: '<!--DOCUMENTS_DEBUG-->' }} />
+            
+            {/* Success Message */}
+            {deleteSuccess && (
+                <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800">
+                    Document deleted successfully
+                </div>
+            )}
             
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">

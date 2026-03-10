@@ -152,10 +152,10 @@ export const DocumentView: React.FC = () => {
                         <div className="document-actions">
                             <button
                                 onClick={() => setShowDeleteModal(true)}
-                                className="p-2 hover:bg-rose-50 text-gray-400 hover:text-rose-600 rounded-lg transition-colors"
-                                title="Delete Document"
+                                className="flex items-center gap-1.5 px-3 py-1.5 hover:bg-rose-50 text-gray-400 hover:text-rose-600 rounded-lg transition-colors text-sm"
                             >
-                                <Trash2 size={18} />
+                                <Trash2 size={16} />
+                                Delete
                             </button>
                         </div>
                     </div>

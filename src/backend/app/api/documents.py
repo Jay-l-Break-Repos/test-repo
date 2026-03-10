@@ -97,3 +97,22 @@ async def view_document(
         text_content = f.read()
     
     return Response(content=text_content, media_type="text/plain")
+
+@router.delete("/{document_id}")
+async def delete_document(
+    document_id: int,
+    session: Session = Depends(get_session)
+):
+    document = session.get(Document, document_id)
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    # Remove the file from disk if it exists
+    if os.path.exists(document.path):
+        os.remove(document.path)
+    
+    # Remove the document record from the database
+    session.delete(document)
+    session.commit()
+    
+    return {"message": "Document deleted successfully", "id": document_id}

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, FileText } from 'lucide-react';
-import { type ApiDocument, getDocument } from '../services/document.api';
+import { ArrowLeft, FileText, Trash2 } from 'lucide-react';
+import { type ApiDocument, getDocument, deleteDocument } from '../services/document.api';
 import axios from 'axios';
-import { showError } from '../utils/toast';
-
+import { showError, showSuccess } from '../utils/toast';
+import { ConfirmModal } from '../components';
 
 import './DocumentView.css';
 
@@ -14,7 +14,7 @@ export const DocumentView: React.FC = () => {
     const [document, setDocument] = useState<ApiDocument | null>(null);
     const [textContent, setTextContent] = useState("");
     const [loading, setLoading] = useState(true);
-
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
 
     useEffect(() => {
         const fetchDocument = async () => {
@@ -55,6 +55,20 @@ export const DocumentView: React.FC = () => {
         };
         fetchContent();
     }, [document]);
+
+    const handleDeleteConfirm = async () => {
+        if (!document) return;
+        try {
+            await deleteDocument(document.id);
+            showSuccess('Document deleted successfully');
+            navigate('/documents');
+        } catch (error) {
+            console.error('Failed to delete document:', error);
+            showError('Failed to delete document');
+        } finally {
+            setShowDeleteModal(false);
+        }
+    };
 
     if (loading || !document) {
         return (
@@ -136,7 +150,14 @@ export const DocumentView: React.FC = () => {
 
                         {/* Action Buttons Container */}
                         <div className="document-actions">
-
+                            <button
+                                onClick={() => setShowDeleteModal(true)}
+                                className="p-2 hover:bg-rose-50 text-gray-400 hover:text-rose-600 rounded-lg transition-colors"
+                                title="Delete Document"
+                                aria-label="Delete Document"
+                            >
+                                <Trash2 size={18} />
+                            </button>
                         </div>
                     </div>
 
@@ -146,6 +167,17 @@ export const DocumentView: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Delete Confirmation Modal */}
+            <ConfirmModal
+                isOpen={showDeleteModal}
+                title="Delete Document"
+                message={`Are you sure you want to delete "${document.name}"? This action cannot be undone.`}
+                confirmLabel="Delete"
+                cancelLabel="Cancel"
+                onConfirm={handleDeleteConfirm}
+                onCancel={() => setShowDeleteModal(false)}
+            />
         </div>
     );
 };

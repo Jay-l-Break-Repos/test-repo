@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Eye, Plus } from 'lucide-react';
-import { getDocuments } from '../services/document.api';
-import { showError } from '../utils/toast';
+import { FileText, Eye, Plus, Trash2 } from 'lucide-react';
+import { getDocuments, deleteDocument } from '../services/document.api';
+import { showError, showSuccess } from '../utils/toast';
+import { ConfirmModal } from '../components';
 
 interface Document {
     id: number;
@@ -18,6 +19,7 @@ export const Documents = () => {
     const navigate = useNavigate();
     const [documents, setDocuments] = useState<Document[]>([]);
     const [loading, setLoading] = useState(true);
+    const [deleteTarget, setDeleteTarget] = useState<Document | null>(null);
 
     const fetchDocuments = async () => {
         setLoading(true);
@@ -36,6 +38,29 @@ export const Documents = () => {
     useEffect(() => {
         fetchDocuments();
     }, []);
+
+    const handleDeleteClick = (e: React.MouseEvent, doc: Document) => {
+        e.stopPropagation();
+        setDeleteTarget(doc);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!deleteTarget) return;
+        try {
+            await deleteDocument(deleteTarget.id);
+            showSuccess('Document deleted successfully');
+            setDocuments((prev) => prev.filter((d) => d.id !== deleteTarget.id));
+        } catch (error) {
+            console.error('Failed to delete document:', error);
+            showError('Failed to delete document');
+        } finally {
+            setDeleteTarget(null);
+        }
+    };
+
+    const handleDeleteCancel = () => {
+        setDeleteTarget(null);
+    };
 
     const formatSize = (bytes: number) => {
         if (bytes === 0) return '0 B';
@@ -134,16 +159,26 @@ export const Documents = () => {
                                             </td>
                                             <td className="py-4 px-4 text-gray-500 text-sm font-mono text-right">{formatSize(doc.size)}</td>
                                             <td className="py-4 px-4 pr-6 text-right">
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        navigate(`/documents/${doc.id}`);
-                                                    }}
-                                                    className="p-2 hover:bg-indigo-50 text-gray-400 hover:text-indigo-600 rounded-lg transition-colors"
-                                                    title="View"
-                                                >
-                                                    <Eye size={18} />
-                                                </button>
+                                                <div className="flex items-center justify-end gap-1">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            navigate(`/documents/${doc.id}`);
+                                                        }}
+                                                        className="p-2 hover:bg-indigo-50 text-gray-400 hover:text-indigo-600 rounded-lg transition-colors"
+                                                        title="View"
+                                                    >
+                                                        <Eye size={18} />
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => handleDeleteClick(e, doc)}
+                                                        className="flex items-center gap-1.5 px-2 py-1.5 hover:bg-rose-50 text-gray-400 hover:text-rose-600 rounded-lg transition-colors text-sm"
+                                                        title="Delete"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                        Delete
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))
@@ -153,6 +188,17 @@ export const Documents = () => {
                     )}
                 </div>
             </div>
+
+            {/* Delete Confirmation Modal */}
+            <ConfirmModal
+                isOpen={!!deleteTarget}
+                title="Delete Document"
+                message={`Are you sure you want to delete "${deleteTarget?.name}"? This action cannot be undone.`}
+                confirmLabel="Delete Document"
+                cancelLabel="Cancel"
+                onConfirm={handleDeleteConfirm}
+                onCancel={handleDeleteCancel}
+            />
         </div>
     );
 };

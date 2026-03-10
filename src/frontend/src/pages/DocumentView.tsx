@@ -154,7 +154,7 @@ export const DocumentView: React.FC = () => {
                                 onClick={() => setShowDeleteModal(true)}
                                 className="p-2 hover:bg-rose-50 text-gray-400 hover:text-rose-600 rounded-lg transition-colors"
                                 title="Delete Document"
-                                aria-label="Delete"
+                                aria-label="Delete Document"
                             >
                                 <Trash2 size={18} />
                             </button>

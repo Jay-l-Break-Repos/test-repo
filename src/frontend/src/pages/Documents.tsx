@@ -173,6 +173,7 @@ export const Documents = () => {
                                                     <button
                                                         onClick={(e) => handleDeleteClick(e, doc)}
                                                         className="flex items-center gap-1.5 px-2 py-1.5 hover:bg-rose-50 text-gray-400 hover:text-rose-600 rounded-lg transition-colors text-sm"
+                                                        title="Delete"
                                                     >
                                                         <Trash2 size={16} />
                                                         Delete

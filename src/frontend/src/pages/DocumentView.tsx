@@ -171,7 +171,7 @@ export const DocumentView: React.FC = () => {
             {/* Delete Confirmation Modal */}
             <ConfirmModal
                 isOpen={showDeleteModal}
-                title="Delete Document"
+                title="Confirm Deletion"
                 message={`Are you sure you want to delete "${document.name}"? This action cannot be undone.`}
                 confirmLabel="Delete Document"
                 cancelLabel="Cancel"

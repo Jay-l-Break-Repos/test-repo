@@ -192,7 +192,7 @@ export const Documents = () => {
             {/* Delete Confirmation Modal */}
             <ConfirmModal
                 isOpen={!!deleteTarget}
-                title="Confirm Deletion"
+                title="Delete Document"
                 message={`Are you sure you want to delete "${deleteTarget?.name}"? This action cannot be undone.`}
                 confirmLabel="Confirm"
                 cancelLabel="Cancel"

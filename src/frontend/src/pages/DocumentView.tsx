@@ -152,11 +152,11 @@ export const DocumentView: React.FC = () => {
                         <div className="document-actions">
                             <button
                                 onClick={() => setShowDeleteModal(true)}
-                                className="flex items-center gap-1.5 px-3 py-1.5 hover:bg-rose-50 text-gray-400 hover:text-rose-600 rounded-lg transition-colors text-sm"
+                                className="p-2 hover:bg-rose-50 text-gray-400 hover:text-rose-600 rounded-lg transition-colors"
                                 title="Delete Document"
+                                aria-label="Delete"
                             >
-                                <Trash2 size={16} />
-                                Delete
+                                <Trash2 size={18} />
                             </button>
                         </div>
                     </div>
@@ -173,7 +173,7 @@ export const DocumentView: React.FC = () => {
                 isOpen={showDeleteModal}
                 title="Confirm Deletion"
                 message={`Are you sure you want to delete "${document.name}"? This action cannot be undone.`}
-                confirmLabel="Delete Document"
+                confirmLabel="Confirm"
                 cancelLabel="Cancel"
                 onConfirm={handleDeleteConfirm}
                 onCancel={() => setShowDeleteModal(false)}

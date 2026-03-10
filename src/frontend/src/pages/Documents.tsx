@@ -172,11 +172,11 @@ export const Documents = () => {
                                                     </button>
                                                     <button
                                                         onClick={(e) => handleDeleteClick(e, doc)}
-                                                        className="flex items-center gap-1.5 px-2 py-1.5 hover:bg-rose-50 text-gray-400 hover:text-rose-600 rounded-lg transition-colors text-sm"
+                                                        className="p-2 hover:bg-rose-50 text-gray-400 hover:text-rose-600 rounded-lg transition-colors"
                                                         title="Delete"
+                                                        aria-label="Delete"
                                                     >
-                                                        <Trash2 size={16} />
-                                                        Delete
+                                                        <Trash2 size={18} />
                                                     </button>
                                                 </div>
                                             </td>
@@ -194,7 +194,7 @@ export const Documents = () => {
                 isOpen={!!deleteTarget}
                 title="Confirm Deletion"
                 message={`Are you sure you want to delete "${deleteTarget?.name}"? This action cannot be undone.`}
-                confirmLabel="Delete Document"
+                confirmLabel="Confirm"
                 cancelLabel="Cancel"
                 onConfirm={handleDeleteConfirm}
                 onCancel={handleDeleteCancel}

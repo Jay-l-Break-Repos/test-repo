@@ -194,7 +194,7 @@ export const Documents = () => {
                 isOpen={!!deleteTarget}
                 title="Delete Document"
                 message={`Are you sure you want to delete "${deleteTarget?.name}"? This action cannot be undone.`}
-                confirmLabel="Confirm"
+                confirmLabel="Delete"
                 cancelLabel="Cancel"
                 onConfirm={handleDeleteConfirm}
                 onCancel={handleDeleteCancel}

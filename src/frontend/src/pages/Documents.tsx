@@ -175,6 +175,7 @@ export const Documents = () => {
                                                         className="p-2 hover:bg-rose-50 text-gray-400 hover:text-rose-600 rounded-lg transition-colors"
                                                         title="Delete"
                                                         aria-label="Delete"
+                                                        data-testid="delete-document"
                                                     >
                                                         <Trash2 size={18} />
                                                     </button>

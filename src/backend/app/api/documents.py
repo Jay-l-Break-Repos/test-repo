@@ -81,6 +81,37 @@ async def get_document(document_id: int, session: Session = Depends(get_session)
     # Return as DocumentRead with empty versions
     return DocumentRead(**document.dict(), versions=[])
 
+@router.delete("/{document_id}", status_code=200)
+async def delete_document(document_id: int, session: Session = Depends(get_session)):
+    """
+    Delete a document by its ID.
+
+    Removes the document record from the database and, if present,
+    deletes the associated file from disk.
+
+    Returns 200 with a confirmation message on success.
+    Returns 404 if no document with the given ID exists.
+    """
+    document = session.get(Document, document_id)
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    # Remove the file from disk if it exists
+    if document.path and os.path.exists(document.path):
+        try:
+            os.remove(document.path)
+        except OSError as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to delete file from disk: {str(e)}"
+            )
+
+    session.delete(document)
+    session.commit()
+
+    return {"message": "Document deleted successfully", "id": document_id}
+
+
 @router.get("/{document_id}/view")
 async def view_document(
     document_id: int,
